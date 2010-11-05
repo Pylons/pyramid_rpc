@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-__version__ = '0.0'
+__version__ = '0.1'
 
 import os
 
@@ -25,9 +25,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
-setup(name='pyramid_xmlrpc',
+setup(name='pyramid_rpc',
       version=__version__,
-      description='XML-RPC support for the Pyramid web framework',
+      description='RPC support for the Pyramid web framework',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Intended Audience :: Developers",
@@ -36,15 +36,14 @@ setup(name='pyramid_xmlrpc',
         "Framework :: Pylons",
         ],
       keywords='web wsgi pyramid pylons xml-rpc',
-      author="Agendaless Consulting",
-      author_email="repoze-dev@lists.repoze.org",
-      url="http://www.repoze.org",
+      author="Ben Bangert",
+      author_email="ben@groovie.org",
+      url="http://pylonshq.com/",
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
       tests_require = ['pyramid', 'pkginfo'],
       install_requires=['setuptools','pyramid'],
-      test_suite="pyramid_xmlrpc",
+      test_suite="pyramid_rpc",
       )
-
