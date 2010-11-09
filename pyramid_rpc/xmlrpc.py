@@ -1,5 +1,6 @@
 import xmlrpclib
 
+import venusian
 from zope.interface import providedBy
 
 from pyramid.response import Response
@@ -45,7 +46,8 @@ def parse_xmlrpc_request(request):
     params, method = xmlrpclib.loads(request.body)
     return params, method
 
-def xmlrpc_view(method=None, route_name='RPC2'):
+
+class xmlrpc_view(object):
     """ This decorator may be used with pyramid view callables to enable them
     to repsond to XML-RPC method calls.
     
@@ -54,10 +56,16 @@ def xmlrpc_view(method=None, route_name='RPC2'):
     the appropriate route was added to the application's config.
     
     """
-    def wrapper(wrapped):
-        method_name = method or wrapped.__name__
-        return view_config(route_name=route_name, name=method_name)(wrapped)
-    return wrapper
+    venusian = venusian # for testing injection
+    def __init__(self, method=None, route_name='RPC2'):
+        self.method = method
+        self.route_name = route_name
+    
+    def __call__(self, wrapped):
+        view_config.venusian = self.venusian
+        method_name = self.method or wrapped.__name__
+        return view_config(route_name=self.route_name, name=method_name)(wrapped)
+
 
 def xmlrpc_endpoint(request):
     """A base view to be used with add_route to setup an XML-RPC dispatch
