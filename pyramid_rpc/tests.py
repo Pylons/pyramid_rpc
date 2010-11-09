@@ -114,10 +114,6 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         self.registry.registerAdapter(
             app, (classifier, req_iface, ctx_iface), IView, name)
     
-    def _makeNoneContext(self):
-        from zope.interface import providedBy
-        return providedBy(None)
-    
     def _makeDummyRequest(self):
         from pyramid.testing import DummyRequest
         return DummyRequest()
@@ -126,7 +122,6 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         from pyramid.interfaces import IViewClassifier
         view = DummyView({'name': 'Smith'})
         rpc2_iface = self._registerRouteRequest('RPC2')
-        none_context = self._makeNoneContext()
         self._registerView(view, 'echo', IViewClassifier, rpc2_iface, None)
         
         xmlrpc_endpoint = self._makeOne()
