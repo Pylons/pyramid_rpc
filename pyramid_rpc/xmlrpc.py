@@ -98,7 +98,7 @@ def xmlrpc_endpoint(request):
     
     # Hairy view lookup stuff below, woo!
     request_iface = registry.queryUtility(
-        IRouteRequest, name=request.route.name,
+        IRouteRequest, name=request.matched_route.name,
         default=IRequest)
     context_iface = providedBy(request.context)
     view_callable = adapters.lookup(

@@ -127,7 +127,7 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         xmlrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = DummyXMLBody
-        request.route = DummyRoute('RPC2')
+        request.matched_route = DummyRoute('RPC2')
         response = xmlrpc_endpoint(request)
         self.assertEqual(response.content_type, 'text/xml')
         self.assertEqual(response.content_length, 202)
@@ -138,7 +138,7 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         xmlrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = DummyXMLBody
-        request.route = DummyRoute('RPC2')
+        request.matched_route = DummyRoute('RPC2')
         response = xmlrpc_endpoint(request)
         self.assertEqual(response.message, "No method of that name was found.")
 
