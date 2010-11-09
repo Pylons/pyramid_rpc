@@ -1,4 +1,5 @@
-repoze.atemplate README
-=======================
+pyramid_rpc README
+==================
 
-- [_] TBD
+- Support system.* XML-RPC API Methods and introspection
+- Add JSON-RPC system in the same style as XML-RPC mini-router
