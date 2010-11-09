@@ -53,7 +53,8 @@ class xmlrpc_view(object):
     
     If ``method`` is not supplied, then the callable name will be used for
     the method name. If ``route_name`` is not supplied, it is assumed that
-    the appropriate route was added to the application's config.
+    the appropriate route was added to the application's config (named
+    'RPC2').
     
     """
     venusian = venusian # for testing injection

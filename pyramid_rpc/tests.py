@@ -86,6 +86,93 @@ class TestXMLRPCViewDecorator(unittest.TestCase):
         self.assertEqual(settings[0]['name'], 'foo')
         self.assertEqual(settings[0]['route_name'], 'RPC2')
 
+class TestXMLRPCEndPoint(unittest.TestCase):
+    def setUp(self):
+        testing.cleanUp()
+        from pyramid.threadlocal import get_current_registry
+        self.registry = get_current_registry()
+
+    def tearDown(self):
+        testing.cleanUp()
+
+    def _getTargetClass(self):
+        from pyramid_rpc.xmlrpc import xmlrpc_endpoint
+        return xmlrpc_endpoint
+
+    def _makeOne(self, *arg, **kw):
+        return self._getTargetClass()
+
+    def _registerRouteRequest(self, name):
+        from pyramid.interfaces import IRouteRequest
+        from pyramid.request import route_request_iface
+        iface = route_request_iface(name)
+        self.registry.registerUtility(iface, IRouteRequest, name=name)
+        return iface
+
+    def _registerView(self, app, name, classifier, req_iface, ctx_iface):
+        from pyramid.interfaces import IView
+        self.registry.registerAdapter(
+            app, (classifier, req_iface, ctx_iface), IView, name)
+    
+    def _makeNoneContext(self):
+        from zope.interface import providedBy
+        return providedBy(None)
+    
+    def _makeDummyRequest(self):
+        from pyramid.testing import DummyRequest
+        return DummyRequest()
+    
+    def test_xmlrpc_endpoint(self):
+        from pyramid.interfaces import IViewClassifier
+        view = DummyView({'name': 'Smith'})
+        rpc2_iface = self._registerRouteRequest('RPC2')
+        none_context = self._makeNoneContext()
+        self._registerView(view, 'echo', IViewClassifier, rpc2_iface, None)
+        
+        xmlrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = DummyXMLBody
+        request.route = DummyRoute('RPC2')
+        response = xmlrpc_endpoint(request)
+        self.assertEqual(response.content_type, 'text/xml')
+        self.assertEqual(response.content_length, 202)
+    
+    def test_xmlrpc_endpoint_not_found(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid.exceptions import NotFound
+        xmlrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = DummyXMLBody
+        request.route = DummyRoute('RPC2')
+        response = xmlrpc_endpoint(request)
+        self.assertEqual(response.message, "No method of that name was found.")
+
+
+DummyXMLBody = """<?xml version="1.0" encoding="ISO-8859-1"?>
+<methodCall>
+   <methodName>echo</methodName>
+   <params>
+       <param>
+	    <value><int>13</int></value>
+       </param>
+   </params>
+</methodCall>
+"""
+
+class DummyRoute:
+    def __init__(self, route_name):
+        self.name = route_name
+
+class DummyView:
+    def __init__(self, response, raise_exception=None):
+        self.response = response
+        self.raise_exception = raise_exception
+
+    def __call__(self, context, request):
+        self.context = context
+        self.request = request
+        return self.response
+
 class DummyVenusianInfo(object):
     scope = 'notaclass'
     module = sys.modules['pyramid_rpc.tests']
