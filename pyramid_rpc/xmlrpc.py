@@ -78,12 +78,13 @@ def xmlrpc_endpoint(request):
         config.add_route('RPC2', '/apis/RPC2', view=xmlrpc_endpoint)
     
     XML-RPC methods should then be registered with ``add_view`` using the
-    route_name of the endpoint, the name as the xmlrpc method name, and
-    renderer of 'xmlrpc'. Or for brevity, the xmlrpc decorator can be used.
+    route_name of the endpoint, the name as the xmlrpc method name. Or for
+    brevity, the :class:`~pyramid_rpc.xmlrpc.xmlrpc_view` decorator can be
+    used.
     
     For example, to register an xmlrpc method 'list_users'::
     
-        @xmlrpc()
+        @xmlrpc_view()
         def list_users(request):
             xml_args = request.xmlrpc_args
             return {'users': [...]}
