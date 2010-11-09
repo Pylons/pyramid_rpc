@@ -1,6 +1,15 @@
 pyramid_rpc
-==============
+===========
 
 Next release
 ------------
 
+- JSON-RPC
+
+0.1 (2010-11-09)
+================
+
+Features
+--------
+
+- XML-RPC support with xmlrpc_view decorator and xmlrpc_endpoint.
