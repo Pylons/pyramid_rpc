@@ -96,11 +96,14 @@ def find_jsonrpc_view(request, method):
 
     if method is None: return None
 
+    method = method.replace('.', '_')
+
     # Hairy view lookup stuff below, woo!
     request_iface = registry.queryUtility(
         IRouteRequest, name=request.matched_route.name,
         default=IRequest)
     context_iface = providedBy(request.context)
+
     view_callable = adapters.lookup(
         (IViewClassifier, request_iface, context_iface),
         IView, name=method, default=None)
@@ -125,8 +128,8 @@ class jsonrpc_view(object):
     def __call__(self, wrapped):
         view_config.venusian = self.venusian
         method_name = self.method or wrapped.__name__
+        method_name = method_name.replace('.', '_')
         return view_config(route_name=self.route_name, name=method_name)(wrapped)
-
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
