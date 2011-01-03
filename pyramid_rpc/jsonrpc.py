@@ -165,6 +165,9 @@ def jsonrpc_endpoint(request):
     """
     environ = request.environ
 
+    if environ['REQUEST_METHOD'] != 'POST':
+        return jsonrpc_response(JSONRPC_INVALID_REQUEST)
+
     length = request.content_length
     if length == 0:
         return HTTPLengthRequired()
