@@ -121,15 +121,21 @@ class jsonrpc_view(object):
     
     """
     venusian = venusian # for testing injection
-    def __init__(self, method=None, route_name='RPC3'):
+    def __init__(self, method=None, route_name='RPC3',
+                 context=None, permission=None, custom_predicates=()):
         self.method = method
         self.route_name = route_name
+        self.context = context
+        self.permission = permission
+        self.custom_predicates = custom_predicates
     
     def __call__(self, wrapped):
         view_config.venusian = self.venusian
         method_name = self.method or wrapped.__name__
         method_name = method_name.replace('.', '_')
-        return view_config(route_name=self.route_name, name=method_name)(wrapped)
+        return view_config(route_name=self.route_name, name=method_name,
+                           context=self.context, permission=self.permission,
+                           custom_predicates=self.custom_predicates)(wrapped)
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
