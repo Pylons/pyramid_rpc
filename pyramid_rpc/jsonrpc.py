@@ -2,6 +2,7 @@ try:
     import json
 except ImportError:
     import simplejson as json
+import logging
 import urllib
 
 import venusian
@@ -14,13 +15,15 @@ from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IView
 from pyramid.interfaces import IViewClassifier
 
-from pyramid.exceptions import HTTPLengthRequired
+from pyramid.httpexceptions import HTTPLengthRequired
 from pyramid.view import view_config
 
 __all__ = ['jsonrpc_endpoint', 'jsonrpc_view', 'JSONRPCError',
            'JSONRPC_PARSE_ERROR', 'JSONRPC_INVALID_REQUEST',
            'JSONRPC_METHOD_NOT_FOUND', 'JSONRPC_INVALID_PARAMS',
            'JSONRPC_INTERNAL_ERROR']
+
+log = logging.getLogger(__name__)
 
 JSONRPC_VERSION = '2.0'
 
@@ -88,6 +91,11 @@ def jsonrpc_response(data, id=None):
 
 def find_jsonrpc_view(request, method):
     """ Search for a registered JSON-RPC view for the endpoint."""
+    registry = request.registry
+    adapters = registry.adapters
+
+    if method is None: return None
+
     # Hairy view lookup stuff below, woo!
     request_iface = registry.queryUtility(
         IRouteRequest, name=request.matched_route.name,
@@ -144,8 +152,6 @@ def jsonrpc_endpoint(request):
     Existing views that return a dict can be used with jsonrpc_view.
     
     """
-    registry = request.registry
-    adapters = registry.adapters
     environ = request.environ
 
     length = request.content_length
@@ -166,6 +172,7 @@ def jsonrpc_endpoint(request):
         return jsonrpc_response(JSONRPC_INVALID_REQUEST, rpc_id)
 
     view_callable = find_jsonrpc_view(request, rpc_method)
+    log.debug('view callable %r found for method %r', view_callable, rpc_method)
     if not view_callable:
         return jsonrpc_response(JSONRPC_METHOD_NOT_FOUND, rpc_id)
 
