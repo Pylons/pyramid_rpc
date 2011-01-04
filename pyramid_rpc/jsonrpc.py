@@ -88,7 +88,7 @@ def jsonrpc_response(data, id=None):
     response.content_type = 'application/json'
     response.content_length = len(body)
     if isinstance(data, JSONRPCError):
-        response.set_header('x-tm-abort', 'true')
+        response.headers.add('x-tm-abort', 'true')
     return response
 
 def find_jsonrpc_view(request, method):
