@@ -43,10 +43,10 @@ extensions = [
     ]
 
 # Looks for bfg's objects
-intersphinx_mapping = {'http://docs.pylonshq.com/pyramid/dev': None}
+intersphinx_mapping = {'http://docs.pylonsproject.org/projects/pyramid/dev': None}
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['.templates']
+templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -94,7 +94,7 @@ today_fmt = '%B %d, %Y'
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+#pygments_style = 'sphinx'
 
 
 # Options for HTML output
@@ -103,7 +103,7 @@ pygments_style = 'sphinx'
 # Add and use Pylons theme
 sys.path.append(os.path.abspath('_themes'))
 html_theme_path = ['_themes']
-html_theme = 'pylons'
+html_theme = 'pyramid'
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
