@@ -57,10 +57,14 @@ class JSONRPCError(BaseException):
 
 
 JSONRPC_PARSE_ERROR = JSONRPCError(-32700, "Parse error")
-JSONRPC_INVALID_REQUEST = JSONRPCError( -32600, "Invalid Request")
-JSONRPC_METHOD_NOT_FOUND = JSONRPCError( -32601, "Method not found")
-JSONRPC_INVALID_PARAMS = JSONRPCError( -32602, "Invalid params")
-JSONRPC_INTERNAL_ERROR = JSONRPCError( -32603, "Internal error")
+JSONRPC_INVALID_REQUEST = JSONRPCError(-32600, "Invalid request")
+JSONRPC_METHOD_NOT_FOUND = JSONRPCError(-32601, "Method not found")
+JSONRPC_INVALID_PARAMS = JSONRPCError(-32602, "Invalid params")
+JSONRPC_INTERNAL_ERROR = JSONRPCError(-32603, "Internal error")
+
+
+class JSONRPCResponse(Response):
+    pass
 
 
 def jsonrpc_marshal(data, id):
@@ -114,16 +118,16 @@ def find_jsonrpc_view(request, method):
 
 class jsonrpc_view(object):
     """ This decorator may be used with pyramid view callables to enable them
-    to repsond to JSON-RPC method calls.
+    to respond to JSON-RPC method calls.
     
     If ``method`` is not supplied, then the callable name will be used for
     the method name. If ``route_name`` is not supplied, it is assumed that
     the appropriate route was added to the application's config (named
-    'RPC3').
+    'JSON-RPC' by default).
     
     """
     venusian = venusian # for testing injection
-    def __init__(self, method=None, route_name='RPC3',
+    def __init__(self, method=None, route_name='JSON-RPC',
                  context=None, permission=None, custom_predicates=()):
         self.method = method
         self.route_name = route_name
@@ -146,7 +150,7 @@ def jsonrpc_endpoint(request):
     Use this view with ``add_route`` to setup a JSON-RPC endpoint, for
     example::
         
-        config.add_route('RPC3', '/apis/RPC3', view=jsonrpc_endpoint)
+        config.add_route('JSON-RPC', '/apis/jsonrpc', view=jsonrpc_endpoint)
     
     JSON-RPC methods should then be registered with ``add_view`` using the
     route_name of the endpoint, the name as the jsonrpc method name. Or for
@@ -170,7 +174,7 @@ def jsonrpc_endpoint(request):
 
     length = request.content_length
     if length == 0:
-        return HTTPLengthRequired()
+        return jsonrpc_response(JSONRPC_INVALID_REQUEST)
 
     try:
         raw_body = environ['wsgi.input'].read(length)
