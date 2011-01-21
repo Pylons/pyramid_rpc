@@ -15,7 +15,6 @@ from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IView
 from pyramid.interfaces import IViewClassifier
 
-from pyramid.httpexceptions import HTTPLengthRequired
 from pyramid.view import view_config
 
 __all__ = ['jsonrpc_endpoint', 'jsonrpc_view', 'JSONRPCError',
@@ -27,11 +26,12 @@ log = logging.getLogger(__name__)
 
 JSONRPC_VERSION = '2.0'
 
-class JSONRPCError(BaseException):
+class JsonRpcError(BaseException):
 
-    def __init__(self, code, message):
+    def __init__(self, code, message, http_status=500):
         self.code = code
         self.message = message
+        self.http_status = http_status
         self.data = None
 
     def _get_message(self):
@@ -55,17 +55,11 @@ class JSONRPCError(BaseException):
 
         return error
 
-
-JSONRPC_PARSE_ERROR = JSONRPCError(-32700, "Parse error")
-JSONRPC_INVALID_REQUEST = JSONRPCError(-32600, "Invalid request")
-JSONRPC_METHOD_NOT_FOUND = JSONRPCError(-32601, "Method not found")
-JSONRPC_INVALID_PARAMS = JSONRPCError(-32602, "Invalid params")
-JSONRPC_INTERNAL_ERROR = JSONRPCError(-32603, "Internal error")
-
-
-class JSONRPCResponse(Response):
-    pass
-
+JSONRPC_PARSE_ERROR = JSONRPCError(-32700, "Parse error", 500)
+JSONRPC_INVALID_REQUEST = JSONRPCError(-32600, "Invalid request", 400)
+JSONRPC_METHOD_NOT_FOUND = JSONRPCError(-32601, "Method not found", 404)
+JSONRPC_INVALID_PARAMS = JSONRPCError(-32602, "Invalid params", 400)
+JSONRPC_INTERNAL_ERROR = JSONRPCError(-32603, "Internal error", 500)
 
 def jsonrpc_marshal(data, id):
     """ Marshal a Python data structure into a JSON string suitable
@@ -92,7 +86,7 @@ def jsonrpc_response(data, id=None):
     response.content_type = 'application/json'
     response.content_length = len(body)
     if isinstance(data, JSONRPCError):
-        response.headers.add('x-tm-abort', 'true')
+        response.headers.add('X-Tm-Abort', 'true')
     return response
 
 def find_jsonrpc_view(request, method):
@@ -127,21 +121,18 @@ class jsonrpc_view(object):
     
     """
     venusian = venusian # for testing injection
-    def __init__(self, method=None, route_name='JSON-RPC',
-                 context=None, permission=None, custom_predicates=()):
+    def __init__(self, method=None, route_name='JSON-RPC', **kwargs)
         self.method = method
         self.route_name = route_name
-        self.context = context
-        self.permission = permission
-        self.custom_predicates = custom_predicates
+        self.kwargs = kwargs
     
     def __call__(self, wrapped):
         view_config.venusian = self.venusian
-        method_name = self.method or wrapped.__name__
+        name = self.kwargs.pop('name', None)
+        method_name = self.method or name or wrapped.__name__
         method_name = method_name.replace('.', '_')
         return view_config(route_name=self.route_name, name=method_name,
-                           context=self.context, permission=self.permission,
-                           custom_predicates=self.custom_predicates)(wrapped)
+                           **self.kwargs)(wrapped)
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
