@@ -8,12 +8,14 @@ import urllib
 import venusian
 from zope.interface import providedBy
 
-from pyramid.response import Response
+from pyramid.httpexceptions import HTTPNoContent
 
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IView
 from pyramid.interfaces import IViewClassifier
+
+from pyramid.response import Response
 
 from pyramid.view import view_config
 
@@ -61,32 +63,43 @@ JSONRPC_METHOD_NOT_FOUND = JSONRPCError(-32601, "Method not found", 404)
 JSONRPC_INVALID_PARAMS = JSONRPCError(-32602, "Invalid params", 400)
 JSONRPC_INTERNAL_ERROR = JSONRPCError(-32603, "Internal error", 500)
 
+notification_id = object()
+
 def jsonrpc_marshal(data, id):
     """ Marshal a Python data structure into a JSON string suitable
     for use as an JSON-RPC response and return the document.  If
     ``data`` is a ``JSONRPCError`` instance, it will be marshalled
     into a suitable JSON-RPC error object."""
+
     out = {
         'jsonrpc' : JSONRPC_VERSION,
         'id' : id,
     }
     if isinstance(data, JSONRPCError):
         out['error'] = data.as_dict()
+        http_status = data.http_status
+    elif isinstance(data, Exception):
+        out['error' = JSON_INTERNAL_ERROR.as_dict()
+        http_status = JSON_INTERNAL_ERROR.http_status
     else:
         out['result'] = data or ''
-    return json.dumps(out)
+        http_status = 200
+    return json.dumps(out), http_status
 
 def jsonrpc_response(data, id=None):
     """ Marshal a Python data structure into a webob ``Response``
     object with a body that is a JSON string suitable for use as an
     JSON-RPC response with a content-type of ``application/json`` and return
     the response."""
-    body = jsonrpc_marshal(data, id)
+
+    if id is notification_id:
+        return HTTPNoContent()
+
+    body, http_status = jsonrpc_marshal(data, id)
     response = Response(body)
+    response.status_int = http_status
     response.content_type = 'application/json'
     response.content_length = len(body)
-    if isinstance(data, JSONRPCError):
-        response.headers.add('X-Tm-Abort', 'true')
     return response
 
 def find_jsonrpc_view(request, method):
@@ -173,7 +186,7 @@ def jsonrpc_endpoint(request):
     except ValueError:
         return jsonrpc_response(JSONRPC_PARSE_ERROR)
 
-    rpc_id = json_body.get('id')
+    rpc_id = json_body.get('id', notification_id)
     rpc_params = json_body.get('params')
     rpc_method = json_body.get('method')
     rpc_version = json_body.get('jsonrpc')
@@ -187,4 +200,9 @@ def jsonrpc_endpoint(request):
 
     request.jsonrpc_params = rpc_params
 
-    return jsonrpc_response(view_callable(request.context, request), rpc_id)
+    try:
+        data = view_callable(request.context, request)
+        return jsonrpc_response(data, rpc_id)
+    except Exception as e:
+        return jsonrpc_response(e, rpc_id)
+
