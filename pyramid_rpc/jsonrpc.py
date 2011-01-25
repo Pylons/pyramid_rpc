@@ -19,30 +19,19 @@ from pyramid.response import Response
 
 from pyramid.view import view_config
 
-__all__ = ['jsonrpc_endpoint', 'jsonrpc_view', 'JSONRPCError',
-           'JSONRPC_PARSE_ERROR', 'JSONRPC_INVALID_REQUEST',
-           'JSONRPC_METHOD_NOT_FOUND', 'JSONRPC_INVALID_PARAMS',
-           'JSONRPC_INTERNAL_ERROR']
+__all__ = ['jsonrpc_endpoint', 'jsonrpc_view']
 
 log = logging.getLogger(__name__)
 
 JSONRPC_VERSION = '2.0'
 
 class JsonRpcError(BaseException):
+    code = None
+    message = None
+    http_status = None
 
-    def __init__(self, code, message, http_status=500):
-        self.code = code
-        self.message = message
-        self.http_status = http_status
-        self.data = None
-
-    def _get_message(self):
-        return self._message
-
-    def _set_message(self, message):
-        self._message = message
-
-    message = property(_get_message, _set_message)
+    def __init__(self, data=None):
+        self.data = data
 
     def __str__(self):
         return str(self.code) + ': ' + self.message
@@ -57,47 +46,80 @@ class JsonRpcError(BaseException):
 
         return error
 
-JSONRPC_PARSE_ERROR = JSONRPCError(-32700, "Parse error", 500)
-JSONRPC_INVALID_REQUEST = JSONRPCError(-32600, "Invalid request", 400)
-JSONRPC_METHOD_NOT_FOUND = JSONRPCError(-32601, "Method not found", 404)
-JSONRPC_INVALID_PARAMS = JSONRPCError(-32602, "Invalid params", 400)
-JSONRPC_INTERNAL_ERROR = JSONRPCError(-32603, "Internal error", 500)
+class JsonRpcParseError(JsonRpcError):
+    code = -32700
+    message = 'parse error'
+    http_status = 500
+
+class JsonRpcRequestInvalid(JsonRpcError):
+    code = -32600
+    message = 'invalid request'
+    http_status = 400
+
+class JsonRpcMethodNotFound(JsonRpcError):
+    code = -32601
+    message = 'method not found'
+    http_status = 404
+
+class JsonRpcParamsInvalid(JsonRpcError):
+    code = -32602
+    message = 'invalid params'
+    http_status = 400
+
+class JsonRpcInternalError(JsonRpcError):
+    code = -32603
+    message = 'internal error'
+    http_status = 500
 
 notification_id = object()
 
-def jsonrpc_marshal(data, id):
-    """ Marshal a Python data structure into a JSON string suitable
-    for use as an JSON-RPC response and return the document.  If
-    ``data`` is a ``JSONRPCError`` instance, it will be marshalled
-    into a suitable JSON-RPC error object."""
-
-    out = {
-        'jsonrpc' : JSONRPC_VERSION,
-        'id' : id,
-    }
-    if isinstance(data, JSONRPCError):
-        out['error'] = data.as_dict()
-        http_status = data.http_status
-    elif isinstance(data, Exception):
-        out['error' = JSON_INTERNAL_ERROR.as_dict()
-        http_status = JSON_INTERNAL_ERROR.http_status
-    else:
-        out['result'] = data or ''
-        http_status = 200
-    return json.dumps(out), http_status
-
 def jsonrpc_response(data, id=None):
     """ Marshal a Python data structure into a webob ``Response``
-    object with a body that is a JSON string suitable for use as an
-    JSON-RPC response with a content-type of ``application/json`` and return
-    the response."""
+    object with a body that is a JSON string suitable for use as a
+    JSON-RPC response with a content-type of ``application/json``
+    and return the response."""
 
     if id is notification_id:
         return HTTPNoContent()
 
-    body, http_status = jsonrpc_marshal(data, id)
+    if isinstance(data, Exception):
+        return jsonrpc_error_response(data, id)
+
+    out = json.dumps({
+        'jsonrpc' : JSONRPC_VERSION,
+        'id' : id,
+        'result' : data,
+    })
+    try:
+        body = json.dumps(out)
+    except ValueError as e:
+        return jsonrpc_error_response(JsonRpcInternalError(), id)
+
     response = Response(body)
-    response.status_int = http_status
+    response.content_type = 'application/json'
+    response.content_length = len(body)
+    return response
+
+def jsonrpc_error_response(error, id=None):
+    """ Marshal a Python Exception into a webob ``Response``
+    object with a body that is a JSON string suitable for use as
+    a JSON-RPC response with a content-type of ``application/json``
+    and return the response."""
+
+    if id is notification_id:
+        return HTTPNoContent()
+
+    if not isinstance(error, JsonRpcError):
+        error = JsonRpcInternalError()
+
+    body = json.dumps({
+        'jsonrpc' : JSONRPC_VERSION,
+        'id' : id,
+        'error' : error.as_dict(),
+    })
+
+    response = Response(body)
+    response.status_int = error.http_status or 500
     response.content_type = 'application/json'
     response.content_length = len(body)
     return response
@@ -134,7 +156,7 @@ class jsonrpc_view(object):
     
     """
     venusian = venusian # for testing injection
-    def __init__(self, method=None, route_name='JSON-RPC', **kwargs)
+    def __init__(self, method=None, route_name='JSON-RPC', **kwargs):
         self.method = method
         self.route_name = route_name
         self.kwargs = kwargs
@@ -173,30 +195,26 @@ def jsonrpc_endpoint(request):
     """
     environ = request.environ
 
-    if environ['REQUEST_METHOD'] != 'POST':
-        return jsonrpc_response(JSONRPC_INVALID_REQUEST)
-
     length = request.content_length
     if length == 0:
-        return jsonrpc_response(JSONRPC_INVALID_REQUEST)
+        return jsonrpc_error_response(JsonRpcRequestInvalid())
 
     try:
-        raw_body = environ['wsgi.input'].read(length)
-        json_body = json.loads(urllib.unquote(raw_body))
+        body = json.loads(request.body)
     except ValueError:
-        return jsonrpc_response(JSONRPC_PARSE_ERROR)
+        return jsonrpc_error_response(JsonRpcParseError())
 
-    rpc_id = json_body.get('id', notification_id)
-    rpc_params = json_body.get('params')
-    rpc_method = json_body.get('method')
-    rpc_version = json_body.get('jsonrpc')
+    rpc_id = body.get('id', notification_id)
+    rpc_params = body.get('params', [])
+    rpc_method = body.get('method')
+    rpc_version = body.get('jsonrpc')
     if rpc_version != JSONRPC_VERSION:
-        return jsonrpc_response(JSONRPC_INVALID_REQUEST, rpc_id)
+        return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
 
     view_callable = find_jsonrpc_view(request, rpc_method)
     log.debug('view callable %r found for method %r', view_callable, rpc_method)
     if not view_callable:
-        return jsonrpc_response(JSONRPC_METHOD_NOT_FOUND, rpc_id)
+        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
 
     request.jsonrpc_params = rpc_params
 
@@ -204,5 +222,5 @@ def jsonrpc_endpoint(request):
         data = view_callable(request.context, request)
         return jsonrpc_response(data, rpc_id)
     except Exception as e:
-        return jsonrpc_response(e, rpc_id)
+        return jsonrpc_error_response(e, rpc_id)
 
