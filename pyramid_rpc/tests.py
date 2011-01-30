@@ -21,21 +21,6 @@ class TestXMLRPCMarshal(unittest.TestCase):
         data = self._callFUT(fault)
         self.assertEqual(data, xmlrpclib.dumps(fault))
 
-class TestXMLRPResponse(unittest.TestCase):
-    def _callFUT(self, value):
-        from pyramid_rpc.xmlrpc import xmlrpc_response
-        return xmlrpc_response(value)
-        
-    def test_xmlrpc_response(self):
-        import xmlrpclib
-        data = 1
-        response = self._callFUT(data)
-        self.assertEqual(response.content_type, 'text/xml')
-        self.assertEqual(response.body, xmlrpclib.dumps((1,),
-                                                        methodresponse=True))
-        self.assertEqual(response.content_length, len(response.body))
-        self.assertEqual(response.status, '200 OK')
-        
 class TestParseXMLRPCRequest(unittest.TestCase):
     def _callFUT(self, request):
         from pyramid_rpc.xmlrpc import parse_xmlrpc_request
@@ -171,6 +156,7 @@ class DummyView:
 class DummyVenusianInfo(object):
     scope = 'notaclass'
     module = sys.modules['pyramid_rpc.tests']
+    codeinfo = None
 
 class DummyVenusian(object):
     def __init__(self, info=None):

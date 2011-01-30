@@ -14,6 +14,13 @@ from pyramid.interfaces import IViewClassifier
 
 
 def view_lookup(request, method):
+    """Lookup and return a view based on the request, context, and
+    method name
+    
+    This function will use the current routes name to locate the
+    view.
+
+    """
     registry = request.registry
     adapters = registry.adapters
     

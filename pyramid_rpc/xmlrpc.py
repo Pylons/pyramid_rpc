@@ -1,17 +1,12 @@
 import xmlrpclib
 
 import venusian
-from zope.interface import providedBy
-
-from pyramid.response import Response
-
-from pyramid.interfaces import IRequest
-from pyramid.interfaces import IRouteRequest
-from pyramid.interfaces import IView
-from pyramid.interfaces import IViewClassifier
 
 from pyramid.exceptions import NotFound
+from pyramid.response import Response
 from pyramid.view import view_config
+
+from pyramid_rpc.api import view_lookup
 
 
 def xmlrpc_marshal(data):
@@ -24,16 +19,6 @@ def xmlrpc_marshal(data):
     else:
         return xmlrpclib.dumps((data,),  methodresponse=True)
 
-def xmlrpc_response(data):
-    """ Marshal a Python data structure into a webob ``Response``
-    object with a body that is an XML document suitable for use as an
-    XML-RPC response with a content-type of ``text/xml`` and return
-    the response."""
-    xml = xmlrpc_marshal(data)
-    response = Response(xml)
-    response.content_type = 'text/xml'
-    response.content_length = len(xml)
-    return response
 
 def parse_xmlrpc_request(request):
     """ Deserialize the body of a request from an XML-RPC request
@@ -61,7 +46,7 @@ class xmlrpc_view(object):
     def __init__(self, method=None, route_name='RPC2'):
         self.method = method
         self.route_name = route_name
-    
+
     def __call__(self, wrapped):
         view_config.venusian = self.venusian
         method_name = self.method or wrapped.__name__
@@ -92,20 +77,16 @@ def xmlrpc_endpoint(request):
     Existing views that return a dict can be used with xmlrpc_view.
     
     """
-    registry = request.registry
-    adapters = registry.adapters
     params, method = parse_xmlrpc_request(request)
-    request.xmlrpc_args = params
+    request.rpc_args = request.xmlrpc_args = params # b/w compat xmlrpc_args
     
-    # Hairy view lookup stuff below, woo!
-    request_iface = registry.queryUtility(
-        IRouteRequest, name=request.matched_route.name,
-        default=IRequest)
-    context_iface = providedBy(request.context)
-    view_callable = adapters.lookup(
-        (IViewClassifier, request_iface, context_iface),
-        IView, name=method, default=None)
+    view_callable = view_lookup(request, method=method)
     if not view_callable:
         return NotFound("No method of that name was found.")
     else:
-        return xmlrpc_response(view_callable(request.context, request))
+        data = view_callable(request.context, request)
+        xml = xmlrpc_marshal(data)
+        response = Response(xml)
+        response.content_type = 'text/xml'
+        response.content_length = len(xml)
+        return response
