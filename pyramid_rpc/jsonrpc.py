@@ -19,6 +19,8 @@ from pyramid.response import Response
 
 from pyramid.view import view_config
 
+from pyramid_rpc.api import view_lookup
+
 __all__ = ['jsonrpc_endpoint', 'jsonrpc_view']
 
 log = logging.getLogger(__name__)
@@ -124,27 +126,6 @@ def jsonrpc_error_response(error, id=None):
     response.content_length = len(body)
     return response
 
-def find_jsonrpc_view(request, method):
-    """ Search for a registered JSON-RPC view for the endpoint."""
-    registry = request.registry
-    adapters = registry.adapters
-
-    if method is None: return None
-
-    method = method.replace('.', '_')
-
-    # Hairy view lookup stuff below, woo!
-    request_iface = registry.queryUtility(
-        IRouteRequest, name=request.matched_route.name,
-        default=IRequest)
-    context_iface = providedBy(request.context)
-
-    view_callable = adapters.lookup(
-        (IViewClassifier, request_iface, context_iface),
-        IView, name=method, default=None)
-
-    return view_callable
-
 class jsonrpc_view(object):
     """ This decorator may be used with pyramid view callables to enable them
     to respond to JSON-RPC method calls.
@@ -187,7 +168,7 @@ def jsonrpc_endpoint(request):
     
         @jsonrpc_view()
         def list_users(request):
-            json_params = request.jsonrpc_params
+            json_params = request.jsonrpc_args
             return {'users': [...]}
     
     Existing views that return a dict can be used with jsonrpc_view.
@@ -205,18 +186,23 @@ def jsonrpc_endpoint(request):
         return jsonrpc_error_response(JsonRpcParseError())
 
     rpc_id = body.get('id', notification_id)
-    rpc_params = body.get('params', [])
+    rpc_args = body.get('params', [])
     rpc_method = body.get('method')
     rpc_version = body.get('jsonrpc')
+
+    if not rpc_method:
+        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
+
     if rpc_version != JSONRPC_VERSION:
         return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
 
-    view_callable = find_jsonrpc_view(request, rpc_method)
+    method_name = rpc_method.replace('_', '.')
+    view_callable = view_lookup(request, method_name)
     log.debug('view callable %r found for method %r', view_callable, rpc_method)
     if not view_callable:
         return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
 
-    request.jsonrpc_params = rpc_params
+    request.jsonrpc_args = rpc_args
 
     try:
         data = view_callable(request.context, request)
