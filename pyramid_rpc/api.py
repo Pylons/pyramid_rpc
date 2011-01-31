@@ -18,7 +18,7 @@ def view_lookup(request, method):
     method name
     
     This function will use the current routes name to locate the
-    view.
+    view using Pyramid's view lookup machinery.
 
     """
     registry = request.registry
