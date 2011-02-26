@@ -12,7 +12,14 @@ from pyramid import httpexceptions
 from pyramid.response import Response
 
 class PyramidGateway(gateway.BaseGateway):
-    """Pyramid View Remoting Gateway"""
+    """Pyramid View Remoting Gateway
+    
+    :param expose_request:
+        Defaults to True. Whether or not the service function should be
+        called with the Pyramid request object.
+    :param debug: Boolean toggling debug mode.
+    
+    """
 
     def __init__(self, *args, **kwargs):
         kwargs['expose_request'] = kwargs.get('expose_request', True)
