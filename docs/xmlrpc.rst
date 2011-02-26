@@ -117,6 +117,4 @@ Internal Functions Used
 
   .. autofunction:: xmlrpc_marshal
 
-  .. autofunction:: xmlrpc_response
-
   .. autofunction:: parse_xmlrpc_request
