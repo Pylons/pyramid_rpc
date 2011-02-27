@@ -40,7 +40,7 @@ setup(name='pyramid_rpc',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      tests_require = ['pyramid', 'pkginfo'],
+      tests_require = ['pyramid', 'pyamf', 'pkginfo'],
       install_requires=['setuptools','pyramid'],
       test_suite="pyramid_rpc",
       )
