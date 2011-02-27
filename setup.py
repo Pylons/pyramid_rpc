@@ -19,8 +19,13 @@ import os
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+
+try:
+    README = open(os.path.join(here, 'README.rst')).read()
+    CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+except:
+    README = ''
+    CHANGES = ''
 
 setup(name='pyramid_rpc',
       version=__version__,
@@ -40,7 +45,7 @@ setup(name='pyramid_rpc',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      tests_require = ['pyramid', 'pkginfo'],
+      tests_require = ['setuptools', 'pyramid', 'pyamf', 'nose'],
       install_requires=['setuptools','pyramid'],
-      test_suite="pyramid_rpc",
+      test_suite="pyramid_rpc.tests",
       )
