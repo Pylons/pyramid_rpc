@@ -1,5 +1,11 @@
+env26/
 *.egg
-*.pyc
 *.egg-info
-build
-dist
+*.pyc
+*$py.class
+.coverage
+dist/
+*~
+.tox
+nosetests.xml
+pyramid_rpc/coverage.xml

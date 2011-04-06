@@ -92,7 +92,7 @@ Then call the function via an XML-RPC client.
 
    >>> from xmlrpclib import ServerProxy
    >>> s = ServerProxy('http://localhost:6543/api/xmlrpc')
-   >>> s.say_hello('Chris')
+   >>> s.say_hello(name='Chris')
    Hello, Chris
 
 
@@ -116,7 +116,5 @@ Internal Functions Used
 .. automodule:: pyramid_rpc.xmlrpc
 
   .. autofunction:: xmlrpc_marshal
-
-  .. autofunction:: xmlrpc_response
 
   .. autofunction:: parse_xmlrpc_request
