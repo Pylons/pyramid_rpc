@@ -3,17 +3,10 @@ try:
 except ImportError:
     import simplejson as json
 import logging
-import urllib
 
 import venusian
-from zope.interface import providedBy
 
 from pyramid.httpexceptions import HTTPNoContent
-
-from pyramid.interfaces import IRequest
-from pyramid.interfaces import IRouteRequest
-from pyramid.interfaces import IView
-from pyramid.interfaces import IViewClassifier
 
 from pyramid.response import Response
 
