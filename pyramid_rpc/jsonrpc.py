@@ -176,7 +176,7 @@ def jsonrpc_endpoint(request):
         return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
 
     if not rpc_method:
-        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
+        return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
 
     method_name = rpc_method.replace('_', '.')
     view_callable = view_lookup(request, method_name)
@@ -191,4 +191,3 @@ def jsonrpc_endpoint(request):
         return jsonrpc_response(data, rpc_id)
     except Exception, e:
         return jsonrpc_error_response(e, rpc_id)
-

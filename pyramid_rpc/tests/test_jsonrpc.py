@@ -73,7 +73,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
     
     def test_jsonrpc_endpoint_not_found(self):
         from pyramid.interfaces import IViewClassifier
-        from pyramid.exceptions import NotFound
+        from pyramid_rpc.jsonrpc import JsonRpcMethodNotFound
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = DummyJSONBody
@@ -81,7 +81,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        self.assertEqual(data['error']['code'], -32601)
+        self.assertEqual(data['error']['code'], JsonRpcMethodNotFound.code)
 
     def test_jsonrpc_endpoint_parse_error(self):
         from pyramid.interfaces import IViewClassifier
@@ -131,6 +131,18 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcInternalError.code)
 
+    def test_jsonrpc_endpoint_empty_request(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = ""
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        data = json.loads(response.body)
+        self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
+
     def test_jsonrpc_endpoint_invalid_request(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
@@ -149,6 +161,18 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = '{"jsonrpc": "1.0"}'
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        data = json.loads(response.body)
+        self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
+
+    def test_jsonrpc_endpoint_no_method(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = '{"jsonrpc": "2.0"}'
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
@@ -205,30 +229,30 @@ class DummyVenusianInfo(object):
     module = sys.modules['pyramid_rpc.tests']
     codeinfo = None
 
-class DummyVenusian(object):
-    def __init__(self, info=None):
-        if info is None:
-            info = DummyVenusianInfo()
-        self.info = info
-        self.attachments = []
-
-    def attach(self, wrapped, callback, category=None):
-        self.attachments.append((wrapped, callback, category))
-        return self.info
-
-class DummyConfig(object):
-    def __init__(self):
-        self.settings = []
-
-    def add_view(self, **kw):
-        self.settings.append(kw)
-
-class DummyVenusianContext(object):
-    def __init__(self):
-        self.config = DummyConfig()
-        
-def call_venusian(venusian):
-    context = DummyVenusianContext()
-    for wrapped, callback, category in venusian.attachments:
-        callback(context, None, None)
-    return context.config.settings
+# class DummyVenusian(object):
+#     def __init__(self, info=None):
+#         if info is None:
+#             info = DummyVenusianInfo()
+#         self.info = info
+#         self.attachments = []
+# 
+#     def attach(self, wrapped, callback, category=None):
+#         self.attachments.append((wrapped, callback, category))
+#         return self.info
+# 
+# class DummyConfig(object):
+#     def __init__(self):
+#         self.settings = []
+# 
+#     def add_view(self, **kw):
+#         self.settings.append(kw)
+# 
+# class DummyVenusianContext(object):
+#     def __init__(self):
+#         self.config = DummyConfig()
+#         
+# def call_venusian(venusian):
+#     context = DummyVenusianContext()
+#     for wrapped, callback, category in venusian.attachments:
+#         callback(context, None, None)
+#     return context.config.settings
