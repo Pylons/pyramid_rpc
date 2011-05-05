@@ -53,7 +53,8 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.content_length, 73)
+        data = json.loads(response.body)
+        self.assertEqual({"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}, data)
     
     def test_jsonrpc_endpoint_not_found(self):
         from pyramid.interfaces import IViewClassifier
@@ -107,9 +108,21 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], -32600)
 
+    def test_jsonrpc_endpoint_invalid_version(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid.exceptions import NotFound
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = '{"jsonrpc": "1.0"}'
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        data = json.loads(response.body)
+        self.assertEqual(data['error']['code'], -32600)
+
 DummyJSONBody = """{
     "jsonrpc": "2.0",
-    "id": null,
+    "id": "echo-rpc",
     "method": "echo",
     "params": [13]
 }
@@ -117,7 +130,7 @@ DummyJSONBody = """{
 
 ErrorJSONBody = """{
     "jsonrpc": "2.0",
-    "id": null,
+    "id": "error-rpc",
     "method": "error",
     "params": [13]
 }

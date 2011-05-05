@@ -58,25 +58,23 @@ class JsonRpcInternalError(JsonRpcError):
     code = -32603
     message = 'internal error'
 
-notification_id = object()
-
 def jsonrpc_response(data, id=None):
     """ Marshal a Python data structure into a webob ``Response``
     object with a body that is a JSON string suitable for use as a
     JSON-RPC response with a content-type of ``application/json``
     and return the response."""
 
-    if id is notification_id:
-        return HTTPNoContent()
+    if id is None:
+        return Response(content_type="application/json")
 
     if isinstance(data, Exception):
         return jsonrpc_error_response(data, id)
 
-    out = json.dumps({
+    out = {
         'jsonrpc' : JSONRPC_VERSION,
         'id' : id,
         'result' : data,
-    })
+    }
     try:
         body = json.dumps(out)
     except ValueError, e:
@@ -92,9 +90,6 @@ def jsonrpc_error_response(error, id=None):
     object with a body that is a JSON string suitable for use as
     a JSON-RPC response with a content-type of ``application/json``
     and return the response."""
-
-    if id is notification_id:
-        return HTTPNoContent()
 
     if not isinstance(error, JsonRpcError):
         error = JsonRpcInternalError()
@@ -172,16 +167,16 @@ def jsonrpc_endpoint(request):
     if not isinstance(body, dict):
         return jsonrpc_error_response(JsonRpcRequestInvalid())
 
-    rpc_id = body.get('id', notification_id)
+    rpc_id = body.get('id')
     rpc_args = body.get('params', [])
     rpc_method = body.get('method')
     rpc_version = body.get('jsonrpc')
 
-    if not rpc_method:
-        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
-
     if rpc_version != JSONRPC_VERSION:
         return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
+
+    if not rpc_method:
+        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
 
     method_name = rpc_method.replace('_', '.')
     view_callable = view_lookup(request, method_name)
