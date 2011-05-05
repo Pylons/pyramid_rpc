@@ -12,5 +12,6 @@ pyramid_rpc/coverage.xml
 
 include/
 lib/
+man/
 .Python
 build/
