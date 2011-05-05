@@ -71,6 +71,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
     def test_jsonrpc_endpoint_parse_error(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid.exceptions import NotFound
+        from pyramid_rpc.jsonrpc import JsonRpcParseError
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = "]"
@@ -78,10 +79,11 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        self.assertEqual(data['error']['code'], -32700)
+        self.assertEqual(data['error']['code'], JsonRpcParseError.code)
 
     def test_jsonrpc_endpoint_internal_error(self):
         from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcInternalError
         def error_view(request):
             raise Exception
         rpc_iface = self._registerRouteRequest('JSON-RPC')
@@ -94,11 +96,11 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        self.assertEqual(data['error']['code'], -32603)
+        self.assertEqual(data['error']['code'], JsonRpcInternalError.code)
 
     def test_jsonrpc_endpoint_invalid_request(self):
         from pyramid.interfaces import IViewClassifier
-        from pyramid.exceptions import NotFound
+        from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = "[]"
@@ -106,11 +108,11 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        self.assertEqual(data['error']['code'], -32600)
+        self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
     def test_jsonrpc_endpoint_invalid_version(self):
         from pyramid.interfaces import IViewClassifier
-        from pyramid.exceptions import NotFound
+        from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = '{"jsonrpc": "1.0"}'
@@ -118,7 +120,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        self.assertEqual(data['error']['code'], -32600)
+        self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
 DummyJSONBody = """{
     "jsonrpc": "2.0",
