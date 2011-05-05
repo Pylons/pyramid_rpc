@@ -87,7 +87,7 @@ def jsonrpc_response(data, id=None):
     })
     try:
         body = json.dumps(out)
-    except ValueError as e:
+    except ValueError, e:
         return jsonrpc_error_response(JsonRpcInternalError(), id)
 
     response = Response(body)
@@ -200,6 +200,6 @@ def jsonrpc_endpoint(request):
     try:
         data = view_callable(request.context, request)
         return jsonrpc_response(data, rpc_id)
-    except Exception as e:
+    except Exception, e:
         return jsonrpc_error_response(e, rpc_id)
 
