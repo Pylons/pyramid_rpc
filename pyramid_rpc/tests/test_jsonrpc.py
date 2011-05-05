@@ -55,6 +55,21 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         self.assertEqual(response.content_type, 'application/json')
         data = json.loads(response.body)
         self.assertEqual({"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}, data)
+
+    def test_jsonrpc_notification(self):
+        from pyramid.interfaces import IViewClassifier
+        view = DummyView({'name': 'Smith'})
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
+        
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = NotificationJSONBody
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual('', response.body)
     
     def test_jsonrpc_endpoint_not_found(self):
         from pyramid.interfaces import IViewClassifier
@@ -84,7 +99,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
     def test_jsonrpc_endpoint_internal_error(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcInternalError
-        def error_view(request):
+        def error_view(context, request):
             raise Exception
         rpc_iface = self._registerRouteRequest('JSON-RPC')
         self._registerView(error_view, 'error', IViewClassifier, rpc_iface, None)
@@ -92,6 +107,24 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = ErrorJSONBody
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        data = json.loads(response.body)
+        self.assertEqual(data['error']['code'], JsonRpcInternalError.code)
+
+    def test_jsonrpc_endpoint_invalid_response(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcInternalError
+        def invalid_view(context, request):
+            return object()
+
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        self._registerView(invalid_view, 'invalid', IViewClassifier, rpc_iface, None)
+
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = InvalidJSONBody
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
@@ -130,10 +163,25 @@ DummyJSONBody = """{
 }
 """
 
+NotificationJSONBody = """{
+    "jsonrpc": "2.0",
+    "method": "echo",
+    "params": [13]
+}
+"""
+
 ErrorJSONBody = """{
     "jsonrpc": "2.0",
     "id": "error-rpc",
     "method": "error",
+    "params": [13]
+}
+"""
+
+InvalidJSONBody = """{
+    "jsonrpc": "2.0",
+    "id": "error-rpc",
+    "method": "invalid",
     "params": [13]
 }
 """

@@ -25,16 +25,16 @@ class JsonRpcError(BaseException):
     def __init__(self, data=None):
         self.data = data
 
-    def __str__(self):
-        return str(self.code) + ': ' + self.message
+#    def __str__(self):
+#        return str(self.code) + ': ' + self.message
 
     def as_dict(self):
         """Return a dictionary representation of this object for
         serialization in a JSON-RPC response."""
         error = dict(code=self.code,
                      message=self.message)
-        if self.data:
-            error['data'] = self.data
+#        if self.data:
+#            error['data'] = self.data
 
         return error
 
@@ -67,8 +67,8 @@ def jsonrpc_response(data, id=None):
     if id is None:
         return Response(content_type="application/json")
 
-    if isinstance(data, Exception):
-        return jsonrpc_error_response(data, id)
+#    if isinstance(data, Exception):
+#        return jsonrpc_error_response(data, id)
 
     out = {
         'jsonrpc' : JSONRPC_VERSION,
@@ -77,7 +77,7 @@ def jsonrpc_response(data, id=None):
     }
     try:
         body = json.dumps(out)
-    except ValueError, e:
+    except Exception, e:
         return jsonrpc_error_response(JsonRpcInternalError(), id)
 
     response = Response(body)
@@ -105,29 +105,29 @@ def jsonrpc_error_response(error, id=None):
     response.content_length = len(body)
     return response
 
-class jsonrpc_view(object):
-    """ This decorator may be used with pyramid view callables to enable them
-    to respond to JSON-RPC method calls.
-    
-    If ``method`` is not supplied, then the callable name will be used for
-    the method name. If ``route_name`` is not supplied, it is assumed that
-    the appropriate route was added to the application's config (named
-    'JSON-RPC' by default).
-    
-    """
-    venusian = venusian # for testing injection
-    def __init__(self, method=None, route_name='JSON-RPC', **kwargs):
-        self.method = method
-        self.route_name = route_name
-        self.kwargs = kwargs
-    
-    def __call__(self, wrapped):
-        view_config.venusian = self.venusian
-        name = self.kwargs.pop('name', None)
-        method_name = self.method or name or wrapped.__name__
-        method_name = method_name.replace('.', '_')
-        return view_config(route_name=self.route_name, name=method_name,
-                           **self.kwargs)(wrapped)
+#class jsonrpc_view(object):
+#    """ This decorator may be used with pyramid view callables to enable them
+#    to respond to JSON-RPC method calls.
+#    
+#    If ``method`` is not supplied, then the callable name will be used for
+#    the method name. If ``route_name`` is not supplied, it is assumed that
+#    the appropriate route was added to the application's config (named
+#    'JSON-RPC' by default).
+#    
+#    """
+#    venusian = venusian # for testing injection
+#    def __init__(self, method=None, route_name='JSON-RPC', **kwargs):
+#        self.method = method
+#        self.route_name = route_name
+#        self.kwargs = kwargs
+#    
+#    def __call__(self, wrapped):
+#        view_config.venusian = self.venusian
+#        name = self.kwargs.pop('name', None)
+#        method_name = self.method or name or wrapped.__name__
+#        method_name = method_name.replace('.', '_')
+#        return view_config(route_name=self.route_name, name=method_name,
+#                           **self.kwargs)(wrapped)
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
