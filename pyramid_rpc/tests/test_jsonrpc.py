@@ -65,8 +65,19 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
         data = json.loads(response.body)
-        assert data['error']['code'] == -32601
+        self.assertEqual(data['error']['code'], -32601)
 
+    def test_jsonrpc_endpoint_parse_error(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid.exceptions import NotFound
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = "]"
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        data = json.loads(response.body)
+        self.assertEqual(data['error']['code'], -32700)
 
 DummyJSONBody = """{
     "jsonrpc": "2.0",
@@ -75,7 +86,6 @@ DummyJSONBody = """{
     "params": [13]
 }
 """
-
 
 class DummyRoute:
     def __init__(self, route_name):
