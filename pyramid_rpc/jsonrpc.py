@@ -169,6 +169,9 @@ def jsonrpc_endpoint(request):
     except ValueError:
         return jsonrpc_error_response(JsonRpcParseError())
 
+    if not isinstance(body, dict):
+        return jsonrpc_error_response(JsonRpcRequestInvalid())
+
     rpc_id = body.get('id', notification_id)
     rpc_args = body.get('params', [])
     rpc_method = body.get('method')
