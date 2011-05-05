@@ -6,8 +6,6 @@ import logging
 
 import venusian
 
-from pyramid.httpexceptions import HTTPNoContent
-
 from pyramid.response import Response
 
 from pyramid.view import view_config
@@ -23,7 +21,6 @@ JSONRPC_VERSION = '2.0'
 class JsonRpcError(BaseException):
     code = None
     message = None
-    http_status = None
 
     def __init__(self, data=None):
         self.data = data
@@ -44,27 +41,22 @@ class JsonRpcError(BaseException):
 class JsonRpcParseError(JsonRpcError):
     code = -32700
     message = 'parse error'
-    http_status = 500
 
 class JsonRpcRequestInvalid(JsonRpcError):
     code = -32600
     message = 'invalid request'
-    http_status = 400
 
 class JsonRpcMethodNotFound(JsonRpcError):
     code = -32601
     message = 'method not found'
-    http_status = 404
 
 class JsonRpcParamsInvalid(JsonRpcError):
     code = -32602
     message = 'invalid params'
-    http_status = 400
 
 class JsonRpcInternalError(JsonRpcError):
     code = -32603
     message = 'internal error'
-    http_status = 500
 
 notification_id = object()
 
@@ -114,7 +106,6 @@ def jsonrpc_error_response(error, id=None):
     })
 
     response = Response(body)
-    response.status_int = error.http_status or 500
     response.content_type = 'application/json'
     response.content_length = len(body)
     return response

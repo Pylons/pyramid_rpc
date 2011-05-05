@@ -3,6 +3,10 @@ import sys
 
 from pyramid import testing
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 class TestJSONRPCEndPoint(unittest.TestCase):
     def setUp(self):
@@ -60,7 +64,8 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
-        self.assertEqual(response.status_int, 404)
+        data = json.loads(response.body)
+        assert data['error']['code'] == -32601
 
 
 DummyJSONBody = """{
