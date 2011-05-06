@@ -204,7 +204,7 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
         jsonrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
-        request.body = "[]"
+        request.body = "10"
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
         response = jsonrpc_endpoint(request)
