@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 JSONRPC_VERSION = '2.0'
 
-class JsonRpcError(BaseException):
+class JsonRpcError(Exception):
     code = None
     message = None
 
@@ -190,30 +190,44 @@ def jsonrpc_endpoint(request):
     except ValueError:
         return jsonrpc_error_response(JsonRpcParseError())
 
-    if not isinstance(body, dict) and not isinstance(body, list):
-        return jsonrpc_error_response(JsonRpcRequestInvalid())
+    if isinstance(body, dict):
 
-    rpc_id = body.get('id')
+        rpc_id = body.get('id')
+        try:
+            data = _call_rpc(request, body)
+            return jsonrpc_response(data, rpc_id)
+        except Exception, e:
+            return jsonrpc_error_response(e, rpc_id)
+    
+    if isinstance(body, list):
+        results = []
+        for b in body:
+            rpc_id = b.get('id')
+            try:
+                data = _call_rpc(request, b)
+                results.append({'jsonrpc': '2.0', 'result': data, 'id': rpc_id})
+            except Exception, e:
+                results.append({'error': e.as_dict(), 'id': rpc_id})
+        return Response(body=json.dumps(results), content_type="application/json") 
+
+    return jsonrpc_error_response(JsonRpcRequestInvalid())
+
+def _call_rpc(request, body):
     rpc_args = body.get('params', [])
     rpc_method = body.get('method')
     rpc_version = body.get('jsonrpc')
 
     if rpc_version != JSONRPC_VERSION:
-        return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
+        raise JsonRpcRequestInvalid
 
     if not rpc_method:
-        return jsonrpc_error_response(JsonRpcRequestInvalid(), rpc_id)
+        raise JsonRpcRequestInvalid
 
     method_name = rpc_method.replace('_', '.')
     view_callable = view_lookup(request, method_name)
     log.debug('view callable %r found for method %r', view_callable, rpc_method)
     if not view_callable:
-        return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
+        raise JsonRpcMethodNotFound
 
     request.jsonrpc_args = rpc_args
-
-    try:
-        data = view_callable(request.context, request)
-        return jsonrpc_response(data, rpc_id)
-    except Exception, e:
-        return jsonrpc_error_response(e, rpc_id)
+    return view_callable(request.context, request)

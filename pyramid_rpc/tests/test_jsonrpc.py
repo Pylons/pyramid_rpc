@@ -112,6 +112,22 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         data = json.loads(response.body)
         self.assertEqual({"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}, data)
 
+    def test_jsonrpc_endpoint_batch_request(self):
+        from pyramid.interfaces import IViewClassifier
+        view = DummyView({'name': 'Smith'})
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
+        
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = BatchJSONBody
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.body)
+        self.assertEqual([{"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}], data)
+
     def test_jsonrpc_notification(self):
         from pyramid.interfaces import IViewClassifier
         view = DummyView({'name': 'Smith'})
@@ -264,6 +280,14 @@ DummyJSONBody = """{
     "method": "echo",
     "params": [13]
 }
+"""
+
+BatchJSONBody = """[{
+    "jsonrpc": "2.0",
+    "id": "echo-rpc",
+    "method": "echo",
+    "params": [13]
+}]
 """
 
 NotificationJSONBody = """{
