@@ -6,11 +6,14 @@ import logging
 
 import venusian
 
+import inspect
+from zope.interface import implements, classProvides
 from pyramid.response import Response
 
 from pyramid.view import view_config
 
 from pyramid_rpc.api import view_lookup
+from pyramid.interfaces import IViewMapperFactory, IViewMapper
 
 __all__ = ['jsonrpc_endpoint', 'jsonrpc_view']
 
@@ -105,29 +108,52 @@ def jsonrpc_error_response(error, id=None):
     response.content_length = len(body)
     return response
 
-#class jsonrpc_view(object):
-#    """ This decorator may be used with pyramid view callables to enable them
-#    to respond to JSON-RPC method calls.
-#    
-#    If ``method`` is not supplied, then the callable name will be used for
-#    the method name. If ``route_name`` is not supplied, it is assumed that
-#    the appropriate route was added to the application's config (named
-#    'JSON-RPC' by default).
-#    
-#    """
-#    venusian = venusian # for testing injection
-#    def __init__(self, method=None, route_name='JSON-RPC', **kwargs):
-#        self.method = method
-#        self.route_name = route_name
-#        self.kwargs = kwargs
-#    
-#    def __call__(self, wrapped):
-#        view_config.venusian = self.venusian
-#        name = self.kwargs.pop('name', None)
-#        method_name = self.method or name or wrapped.__name__
-#        method_name = method_name.replace('.', '_')
-#        return view_config(route_name=self.route_name, name=method_name,
-#                           **self.kwargs)(wrapped)
+# class jsonrpc_view(object):
+#     """ This decorator may be used with pyramid view callables to enable them
+#     to respond to JSON-RPC method calls.
+#     
+#     If ``method`` is not supplied, then the callable name will be used for
+#     the method name. If ``route_name`` is not supplied, it is assumed that
+#     the appropriate route was added to the application's config (named
+#     'JSON-RPC' by default).
+#     
+#     """
+#     venusian = venusian # for testing injection
+#     def __init__(self, method=None, route_name='JSON-RPC', **kwargs):
+#         self.method = method
+#         self.route_name = route_name
+#         self.kwargs = kwargs
+#         if 'mapper' not in self.kwargs:
+#             self.kwargs['mapper'] = JsonRpcViewMapper
+#     
+#     def __call__(self, wrapped):
+#         view_config.venusian = self.venusian
+#         name = self.kwargs.pop('name', None)
+#         method_name = self.method or name or wrapped.__name__
+#         method_name = method_name.replace('.', '_')
+#         return view_config(route_name=self.route_name, name=method_name,
+#                            **self.kwargs)(wrapped)
+class JsonRpcViewMapper(object):
+    implements(IViewMapper)
+    classProvides(IViewMapperFactory)
+
+    def __init__(self, **info):
+        self.info = info
+
+    def __call__(self, view):
+        def _mapped_callable(context, request):
+            rpc_args = request.jsonrpc_args
+            args, varargs, keywords, defaults = inspect.getargspec(view)
+            if isinstance(rpc_args, list):
+                if len(args) != len(rpc_args) + 1: # for request
+                    raise JsonRpcParamsInvalid
+                return view(request, *rpc_args)
+            elif isinstance(rpc_args, dict):
+                if sorted(args[1:]) != sorted(rpc_args.keys()):
+                    raise JsonRpcParamsInvalid
+                return view(request, **rpc_args)
+        return _mapped_callable
+
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
