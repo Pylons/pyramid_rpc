@@ -128,6 +128,27 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         data = json.loads(response.body)
         self.assertEqual([{"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}], data)
 
+    def test_jsonrpc_endpoint_batch_request_with_error(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcMethodNotFound
+        view = DummyView({'name': 'Smith'})
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
+        
+        jsonrpc_endpoint = self._makeOne()
+        request = self._makeDummyRequest()
+        request.body = BatchErrorJSONBody
+        request.content_length = len(request.body)
+        request.matched_route = DummyRoute('JSON-RPC')
+        response = jsonrpc_endpoint(request)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.body)
+        self.assertEqual(len(data), 2)
+        echo = [d for d in data if d['id'] == 'echo-rpc'][0]
+        self.assertEqual(echo['result'], {'name': 'Smith'})
+        error = [d for d in data if d['id'] == 'error-rpc'][0]
+        self.assertEqual(error['error']['code'], JsonRpcMethodNotFound.code)
+
     def test_jsonrpc_notification(self):
         from pyramid.interfaces import IViewClassifier
         view = DummyView({'name': 'Smith'})
@@ -290,6 +311,19 @@ BatchJSONBody = """[{
 }]
 """
 
+BatchErrorJSONBody = """[{
+    "jsonrpc": "2.0",
+    "id": "echo-rpc",
+    "method": "echo",
+    "params": [13]
+},{
+    "jsonrpc": "2.0",
+    "id": "error-rpc",
+    "method": "error",
+    "params": [13]
+}
+]
+"""
 NotificationJSONBody = """{
     "jsonrpc": "2.0",
     "method": "echo",

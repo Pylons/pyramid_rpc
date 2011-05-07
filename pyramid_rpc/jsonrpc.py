@@ -205,7 +205,8 @@ def jsonrpc_endpoint(request):
             rpc_id = b.get('id')
             try:
                 data = _call_rpc(request, b)
-                results.append({'jsonrpc': '2.0', 'result': data, 'id': rpc_id})
+                if rpc_id is not None:
+                    results.append({'jsonrpc': '2.0', 'result': data, 'id': rpc_id})
             except Exception, e:
                 results.append({'error': e.as_dict(), 'id': rpc_id})
         return Response(body=json.dumps(results), content_type="application/json") 
