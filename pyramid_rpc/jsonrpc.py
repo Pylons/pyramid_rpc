@@ -1,16 +1,14 @@
+import inspect
 import logging
 
 import venusian
-
-import inspect
-from zope.interface import implements, classProvides
 from pyramid.compat import json
+from pyramid.interfaces import IViewMapperFactory, IViewMapper
 from pyramid.response import Response
-
 from pyramid.view import view_config
+from zope.interface import implements, classProvides
 
 from pyramid_rpc.api import view_lookup
-from pyramid.interfaces import IViewMapperFactory, IViewMapper
 
 __all__ = ['jsonrpc_endpoint']
 
@@ -33,25 +31,31 @@ class JsonRpcError(Exception):
 
         return error
 
+
 class JsonRpcParseError(JsonRpcError):
     code = -32700
     message = 'parse error'
+
 
 class JsonRpcRequestInvalid(JsonRpcError):
     code = -32600
     message = 'invalid request'
 
+
 class JsonRpcMethodNotFound(JsonRpcError):
     code = -32601
     message = 'method not found'
+
 
 class JsonRpcParamsInvalid(JsonRpcError):
     code = -32602
     message = 'invalid params'
 
+
 class JsonRpcInternalError(JsonRpcError):
     code = -32603
     message = 'internal error'
+
 
 def jsonrpc_response(data, id=None):
     """ Marshal a Python data structure into a webob ``Response``
@@ -76,6 +80,7 @@ def jsonrpc_response(data, id=None):
     response.content_type = 'application/json'
     response.content_length = len(body)
     return response
+
 
 def jsonrpc_error_response(error, id=None):
     """ Marshal a Python Exception into a webob ``Response``
@@ -199,6 +204,7 @@ def jsonrpc_endpoint(request):
         return Response(body=json.dumps(results), content_type="application/json") 
 
     return jsonrpc_error_response(JsonRpcRequestInvalid())
+
 
 def _call_rpc(request, body):
     rpc_args = body.get('params', [])
