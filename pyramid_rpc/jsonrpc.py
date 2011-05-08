@@ -144,8 +144,7 @@ def jsonrpc_endpoint(request):
     
     JSON-RPC methods should then be registered with ``add_view`` using the
     route_name of the endpoint, the name as the jsonrpc method name. Or for
-    brevity, the :class:`~pyramid_rpc.jsonrpc.jsonrpc_view` decorator can be
-    used.
+    brevity, the :class:`~pyramid_rpc.rpc_view` decorator can be used.
     
     For example, to register an jsonrpc method 'list_users'::
     
