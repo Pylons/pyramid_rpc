@@ -98,3 +98,5 @@ Contributors
 ------------
 
 - Ben Bangert, 1/30/2011
+- Michael Merickel, 1/30/2011
+- Atsushi Odagiri, 5/9/2011
