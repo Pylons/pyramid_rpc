@@ -102,6 +102,19 @@ def jsonrpc_error_response(error, id=None):
 
 
 class JsonRpcViewMapper(object):
+    """
+    Creating mapped view that map rpc arguments to view arguments.
+
+    >>> @rpc_view(mapper=JsonRpcViewMapper)
+    ... def say_hello(request, name):
+    ...     return "Hello, %s" % name
+
+    This is very limited support.
+    
+      - The view callable is assumed only function.
+      - Don't use default values, arbitrary argument lists.
+    """
+
     implements(IViewMapper)
     classProvides(IViewMapperFactory)
 
