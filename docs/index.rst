@@ -41,6 +41,7 @@ RPC Documentation
     
     xmlrpc
     amf
+    jsonrpc
     developer
 
 .. _glossary:
