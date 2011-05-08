@@ -1,13 +1,10 @@
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import logging
 
 import venusian
 
 import inspect
 from zope.interface import implements, classProvides
+from pyramid.compat import json
 from pyramid.response import Response
 
 from pyramid.view import view_config
