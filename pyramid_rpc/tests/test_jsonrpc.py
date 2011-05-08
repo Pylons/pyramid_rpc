@@ -2,11 +2,7 @@ import unittest
 import sys
 
 from pyramid import testing
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from pyramid.compat import json
 
 class TestJSONRPCMapper(unittest.TestCase):
     def _getTargetClass(self):
