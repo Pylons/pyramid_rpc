@@ -30,7 +30,7 @@ class TestJSONRPCMapper(unittest.TestCase):
         target = self._makeOne()
         view_callable = target(dummy_view)
         request = testing.DummyRequest()
-        request.jsonrpc_args = [1, 2]
+        request.rpc_args = [1, 2]
         context = object()
         result = view_callable(context, request)
         self.assertEqual(result, 3)
@@ -39,7 +39,7 @@ class TestJSONRPCMapper(unittest.TestCase):
         target = self._makeOne()
         view_callable = target(dummy_view)
         request = testing.DummyRequest()
-        request.jsonrpc_args = dict(a=3, b=4)
+        request.rpc_args = dict(a=3, b=4)
         context = object()
         result = view_callable(context, request)
         self.assertEqual(result, 7)
@@ -50,7 +50,7 @@ class TestJSONRPCMapper(unittest.TestCase):
         target = self._makeOne()
         view_callable = target(dummy_view)
         request = testing.DummyRequest()
-        request.jsonrpc_args = []
+        request.rpc_args = []
         context = object()
         self.assertRaises(JsonRpcParamsInvalid, view_callable, context, request)
 
@@ -60,7 +60,7 @@ class TestJSONRPCMapper(unittest.TestCase):
         target = self._makeOne()
         view_callable = target(dummy_view)
         request = testing.DummyRequest()
-        request.jsonrpc_args = {}
+        request.rpc_args = {}
         context = object()
         self.assertRaises(JsonRpcParamsInvalid, view_callable, context, request)
 
@@ -77,9 +77,6 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         from pyramid_rpc.jsonrpc import jsonrpc_endpoint
         return jsonrpc_endpoint
 
-    def _makeOne(self, *arg, **kw):
-        return self._getTargetClass()
-
     def _registerRouteRequest(self, name):
         from pyramid.interfaces import IRouteRequest
         from pyramid.request import route_request_iface
@@ -92,62 +89,90 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         self.registry.registerAdapter(
             app, (classifier, req_iface, ctx_iface), IView, name)
     
-    def _makeDummyRequest(self):
+    def _makeDummyRequest(self, request_data=None):
         from pyramid.testing import DummyRequest
-        return DummyRequest()
+        request = DummyRequest()
+        request.matched_route = DummyRoute('JSON-RPC')
+        if request_data is not None:
+            request.body = json.dumps(request_data)
+            request.content_length = len(request.body)
+
+        return request
     
+    def _callFUT(self, *args, **kwargs):
+        jsonrpc_endpoint = self._getTargetClass()
+        response = jsonrpc_endpoint(*args, **kwargs)
+        return response
+
     def test_jsonrpc_endpoint(self):
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
         from pyramid.interfaces import IViewClassifier
         view = DummyView({'name': 'Smith'})
-        rpc_iface = self._registerRouteRequest('JSON-RPC')
         self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
         
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = DummyJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        request_data = {'jsonrpc': '2.0', 'method': 'echo', 'id': 'echo-rpc', 'params':[13]}
+        request = self._makeDummyRequest(request_data)
+
+        response = self._callFUT(request)
+
         self.assertEqual(response.content_type, 'application/json')
         data = json.loads(response.body)
         self.assertEqual({"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}, data)
 
     def test_jsonrpc_endpoint_batch_request(self):
         from pyramid.interfaces import IViewClassifier
-        view = DummyView({'name': 'Smith'})
         rpc_iface = self._registerRouteRequest('JSON-RPC')
-        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
+        view1 = DummyView({'name': 'Smith'})
+        self._registerView(view1, 'echo1', IViewClassifier, rpc_iface, None)
+        view2 = DummyView({'name': 'John Doe'})
+        self._registerView(view2, 'echo2', IViewClassifier, rpc_iface, None)
         
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = BatchJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
-        self.assertEqual(response.content_type, 'application/json')
-        data = json.loads(response.body)
-        self.assertEqual([{"jsonrpc": "2.0", "id": "echo-rpc", "result": {'name': 'Smith'}}], data)
+        request_data = [
+            {'jsonrpc': '2.0', 'method': 'echo1', 'id': 'echo1-rpc', 'params':[13]},
+            {'jsonrpc': '2.0', 'method': 'echo2', 'id': 'echo2-rpc', 'params':[13]},
+        ]
+        request = self._makeDummyRequest(request_data)
 
-    def test_jsonrpc_endpoint_batch_request_with_error(self):
-        from pyramid.interfaces import IViewClassifier
-        from pyramid_rpc.jsonrpc import JsonRpcMethodNotFound
-        view = DummyView({'name': 'Smith'})
-        rpc_iface = self._registerRouteRequest('JSON-RPC')
-        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
-        
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = BatchErrorJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        response = self._callFUT(request)
+
         self.assertEqual(response.content_type, 'application/json')
         data = json.loads(response.body)
         self.assertEqual(len(data), 2)
-        echo = [d for d in data if d['id'] == 'echo-rpc'][0]
-        self.assertEqual(echo['result'], {'name': 'Smith'})
-        error = [d for d in data if d['id'] == 'error-rpc'][0]
-        self.assertEqual(error['error']['code'], JsonRpcMethodNotFound.code)
+        res1 = data[0]
+        self.assertEqual(res1['id'], 'echo1-rpc')
+        self.assertEqual(res1['result'], {'name': 'Smith'})
+        res2 = data[1]
+        self.assertEqual(res2['id'], 'echo2-rpc')
+        self.assertEqual(res2['result'], {'name': 'John Doe'})
+
+    def test_jsonrpc_endpoint_batch_request_with_error(self):
+        from pyramid.interfaces import IViewClassifier
+        from pyramid_rpc.jsonrpc import JsonRpcInternalError
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        view1 = DummyView({'name': 'Smith'})
+        self._registerView(view1, 'echo1', IViewClassifier, rpc_iface, None)
+        view2 = DummyView(raise_exception=Exception)
+        self._registerView(view2, 'echo2', IViewClassifier, rpc_iface, None)
+        
+        request_data = [
+            {'jsonrpc': '2.0', 'method': 'echo1', 'id': 'echo1-rpc', 'params':[13]},
+            {'jsonrpc': '2.0', 'method': 'echo2', 'id': 'echo2-rpc', 'params':[13]},
+        ]
+        request = self._makeDummyRequest(request_data)
+
+        response = self._callFUT(request)
+
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.body)
+        self.assertEqual(len(data), 2)
+        res1 = data[0]
+        self.assertEqual('echo1-rpc', res1['id'])
+        self.assertEqual({'name': 'Smith'}, res1['result'])
+        res2 = data[1]
+        self.assertEqual('echo2-rpc', res2['id'])
+        self.assertEqual(res2['error']['code'], JsonRpcInternalError.code)
+
+
 
     def test_jsonrpc_notification(self):
         from pyramid.interfaces import IViewClassifier
@@ -155,24 +180,21 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         rpc_iface = self._registerRouteRequest('JSON-RPC')
         self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
         
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = NotificationJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
-        self.assertEqual(response.content_type, 'application/json')
+        request_data = {'jsonrpc': '2.0', 'method': 'echo', 'params':[13]}
+        request = self._makeDummyRequest(request_data)
+        
+        response = self._callFUT(request)
+
         self.assertEqual('', response.body)
     
     def test_jsonrpc_endpoint_not_found(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcMethodNotFound
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = DummyJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+
+        request_data = {'jsonrpc': '2.0', 'id': 'nothing-rpc', 'method': 'nothing', 'params':[13]}
+        request = self._makeDummyRequest(request_data)
+        response = self._callFUT(request)
+       
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcMethodNotFound.code)
 
@@ -180,31 +202,43 @@ class TestJSONRPCEndPoint(unittest.TestCase):
         from pyramid.interfaces import IViewClassifier
         from pyramid.exceptions import NotFound
         from pyramid_rpc.jsonrpc import JsonRpcParseError
-        jsonrpc_endpoint = self._makeOne()
+        
         request = self._makeDummyRequest()
         request.body = "]"
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        response = self._callFUT(request)
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcParseError.code)
 
     def test_jsonrpc_endpoint_internal_error(self):
-        from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcInternalError
-        def error_view(context, request):
-            raise Exception
+        from pyramid.interfaces import IViewClassifier
+        view = DummyView(raise_exception=Exception)
         rpc_iface = self._registerRouteRequest('JSON-RPC')
-        self._registerView(error_view, 'error', IViewClassifier, rpc_iface, None)
+        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
 
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = ErrorJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        request_data = {'jsonrpc': '2.0', 'id': 'echo-rpc', 'method': 'echo', 'params':[13]}
+        request = self._makeDummyRequest(request_data)
+        
+        response = self._callFUT(request)
+
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcInternalError.code)
+
+    def test_jsonrpc_notification_with_error(self):
+        from pyramid.interfaces import IViewClassifier
+        view = DummyView(raise_exception=Exception)
+        rpc_iface = self._registerRouteRequest('JSON-RPC')
+        self._registerView(view, 'echo', IViewClassifier, rpc_iface, None)
+        
+        request_data = {'jsonrpc': '2.0', 'method': 'echo', 'params':[13]}
+        request = self._makeDummyRequest(request_data)
+        
+        response = self._callFUT(request)
+
+        self.assertEqual('', response.body)
+
 
     def test_jsonrpc_endpoint_invalid_response(self):
         from pyramid.interfaces import IViewClassifier
@@ -214,61 +248,56 @@ class TestJSONRPCEndPoint(unittest.TestCase):
 
         rpc_iface = self._registerRouteRequest('JSON-RPC')
         self._registerView(invalid_view, 'invalid', IViewClassifier, rpc_iface, None)
-
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = InvalidJSONBody
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        request_data = {'jsonrpc': '2.0', 'id': 'invalid-rpc', 'method': 'invalid', 'params':[]}
+        request = self._makeDummyRequest(request_data)
+        response = self._callFUT(request)
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcInternalError.code)
 
     def test_jsonrpc_endpoint_empty_request(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
-        jsonrpc_endpoint = self._makeOne()
+
         request = self._makeDummyRequest()
         request.body = ""
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        response = self._callFUT(request)
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
     def test_jsonrpc_endpoint_invalid_request(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
-        jsonrpc_endpoint = self._makeOne()
+
         request = self._makeDummyRequest()
         request.body = "10"
         request.content_length = len(request.body)
         request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        response = self._callFUT(request)
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
     def test_jsonrpc_endpoint_invalid_version(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = '{"jsonrpc": "1.0"}'
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+        
+        request_data = {'jsonrpc': '1.0'}
+        request = self._makeDummyRequest(request_data)
+
+        response = self._callFUT(request)
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
     def test_jsonrpc_endpoint_no_method(self):
         from pyramid.interfaces import IViewClassifier
         from pyramid_rpc.jsonrpc import JsonRpcRequestInvalid
-        jsonrpc_endpoint = self._makeOne()
-        request = self._makeDummyRequest()
-        request.body = '{"jsonrpc": "2.0"}'
-        request.content_length = len(request.body)
-        request.matched_route = DummyRoute('JSON-RPC')
-        response = jsonrpc_endpoint(request)
+
+        request_data = {'jsonrpc': '2.0'}
+        request = self._makeDummyRequest(request_data)
+        
+        response = self._callFUT(request)
+
         data = json.loads(response.body)
         self.assertEqual(data['error']['code'], JsonRpcRequestInvalid.code)
 
@@ -282,7 +311,7 @@ class FunctionalTest(unittest.TestCase):
         config.add_route('JSON-RPC', 'apis/rpc', view=jsonrpc_endpoint)
         def dummy_rpc(request, a, b):
             return a + b
-        config.add_view(route_name='JSON-RPC', name='dummy.rpc', view=dummy_rpc, mapper=JsonRpcViewMapper)
+        config.add_view(route_name='JSON-RPC', name='dummy_rpc', view=dummy_rpc, mapper=JsonRpcViewMapper)
         app = config.make_wsgi_app()
         import webtest
         app = webtest.TestApp(app)
@@ -295,58 +324,6 @@ class FunctionalTest(unittest.TestCase):
         self.assertEqual(data['result'], 5)
 
 
-DummyJSONBody = """{
-    "jsonrpc": "2.0",
-    "id": "echo-rpc",
-    "method": "echo",
-    "params": [13]
-}
-"""
-
-BatchJSONBody = """[{
-    "jsonrpc": "2.0",
-    "id": "echo-rpc",
-    "method": "echo",
-    "params": [13]
-}]
-"""
-
-BatchErrorJSONBody = """[{
-    "jsonrpc": "2.0",
-    "id": "echo-rpc",
-    "method": "echo",
-    "params": [13]
-},{
-    "jsonrpc": "2.0",
-    "id": "error-rpc",
-    "method": "error",
-    "params": [13]
-}
-]
-"""
-NotificationJSONBody = """{
-    "jsonrpc": "2.0",
-    "method": "echo",
-    "params": [13]
-}
-"""
-
-ErrorJSONBody = """{
-    "jsonrpc": "2.0",
-    "id": "error-rpc",
-    "method": "error",
-    "params": [13]
-}
-"""
-
-InvalidJSONBody = """{
-    "jsonrpc": "2.0",
-    "id": "error-rpc",
-    "method": "invalid",
-    "params": [13]
-}
-"""
-
 class DummyRoute:
     def __init__(self, route_name):
         self.name = route_name
@@ -355,44 +332,14 @@ def dummy_view(request, a, b):
     return a + b
 
 class DummyView:
-    def __init__(self, response, raise_exception=None):
+    def __init__(self, response=None, raise_exception=None):
         self.response = response
         self.raise_exception = raise_exception
 
     def __call__(self, context, request):
+        if self.raise_exception is not None:
+            raise self.raise_exception
         self.context = context
         self.request = request
         return self.response
 
-class DummyVenusianInfo(object):
-    scope = 'notaclass'
-    module = sys.modules['pyramid_rpc.tests']
-    codeinfo = None
-
-# class DummyVenusian(object):
-#     def __init__(self, info=None):
-#         if info is None:
-#             info = DummyVenusianInfo()
-#         self.info = info
-#         self.attachments = []
-# 
-#     def attach(self, wrapped, callback, category=None):
-#         self.attachments.append((wrapped, callback, category))
-#         return self.info
-# 
-# class DummyConfig(object):
-#     def __init__(self):
-#         self.settings = []
-# 
-#     def add_view(self, **kw):
-#         self.settings.append(kw)
-# 
-# class DummyVenusianContext(object):
-#     def __init__(self):
-#         self.config = DummyConfig()
-#         
-# def call_venusian(venusian):
-#     context = DummyVenusianContext()
-#     for wrapped, callback, category in venusian.attachments:
-#         callback(context, None, None)
-#     return context.config.settings
