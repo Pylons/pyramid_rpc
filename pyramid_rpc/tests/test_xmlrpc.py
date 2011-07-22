@@ -171,6 +171,7 @@ class DummyVenusian(object):
         return self.info
 
 class DummyConfig(object):
+    registry = None
     def __init__(self):
         self.settings = []
 

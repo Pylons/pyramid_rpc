@@ -1,11 +1,9 @@
 import inspect
 import logging
 
-import venusian
 from pyramid.compat import json
 from pyramid.interfaces import IViewMapperFactory, IViewMapper
 from pyramid.response import Response
-from pyramid.view import view_config
 from zope.interface import implements, classProvides
 
 from pyramid_rpc.api import view_lookup
@@ -73,7 +71,7 @@ def jsonrpc_response(data, id=None):
     }
     try:
         body = json.dumps(out)
-    except Exception, e:
+    except Exception:
         return jsonrpc_error_response(JsonRpcInternalError(), id)
 
     response = Response(body)
@@ -161,8 +159,6 @@ def jsonrpc_endpoint(request):
     Existing views that return a dict can be used with jsonrpc_view.
     
     """
-    environ = request.environ
-
     length = request.content_length
     if length == 0:
         return jsonrpc_error_response(JsonRpcRequestInvalid())
@@ -193,7 +189,8 @@ def jsonrpc_endpoint(request):
             try:
                 data = _call_rpc(request, b)
                 if rpc_id is not None:
-                    results.append({'jsonrpc': '2.0', 'result': data, 'id': rpc_id})
+                    results.append(
+                    {'jsonrpc': '2.0', 'result': data, 'id': rpc_id})
             except JsonRpcError, e:
                 results.append({'error': e.as_dict(), 'id': rpc_id})
             except Exception, e:
@@ -201,7 +198,8 @@ def jsonrpc_endpoint(request):
                     e = JsonRpcInternalError(e)
                     results.append({'error': e.as_dict(), 'id': rpc_id})
 
-        return Response(body=json.dumps(results), content_type="application/json") 
+        return Response(body=json.dumps(results),
+                       content_type="application/json") 
 
     return jsonrpc_error_response(JsonRpcRequestInvalid())
 

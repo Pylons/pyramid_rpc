@@ -301,6 +301,13 @@ class TestJSONRPCEndPoint(unittest.TestCase):
 class FunctionalTest(unittest.TestCase):
 
     def test_it(self):
+        try:
+            # Pyramid 1.1
+            from pyramid.renderers import null_renderer
+            renderer = null_renderer
+        except ImportError:
+            # Pyramid 1.0
+            renderer = None
         from pyramid.config import Configurator
         from pyramid_rpc.jsonrpc import jsonrpc_endpoint
         from pyramid_rpc.jsonrpc import JsonRpcViewMapper
@@ -310,7 +317,8 @@ class FunctionalTest(unittest.TestCase):
         def dummy_rpc(request, a, b):
             return a + b
         config.add_view(route_name='JSON-RPC', name='dummy_rpc',
-                        view=dummy_rpc, mapper=JsonRpcViewMapper)
+                        view=dummy_rpc, mapper=JsonRpcViewMapper,
+                        renderer=renderer)
         app = config.make_wsgi_app()
         import webtest
         app = webtest.TestApp(app)

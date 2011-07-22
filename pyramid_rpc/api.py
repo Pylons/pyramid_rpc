@@ -6,7 +6,6 @@ qualifying view to call in response to an RPC method.
 """
 from zope.interface import providedBy
 
-from pyramid.exceptions import NotFound
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IView

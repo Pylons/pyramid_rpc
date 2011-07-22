@@ -50,7 +50,15 @@ class xmlrpc_view(object):
     def __call__(self, wrapped):
         view_config.venusian = self.venusian
         method_name = self.method or wrapped.__name__
-        return view_config(route_name=self.route_name, name=method_name)(wrapped)
+        try:
+            # pyramid 1.1
+            from pyramid.renderers import null_renderer
+            renderer = null_renderer
+        except ImportError:
+            # pyramid 1.0
+            renderer = None
+        return view_config(route_name=self.route_name, name=method_name,
+                           renderer=renderer)(wrapped)
 
 
 def xmlrpc_endpoint(request):

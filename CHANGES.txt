@@ -1,12 +1,15 @@
-pyramid_rpc
-===========
-
 Next release
-------------
+============
+
+Features
+--------
 
 - JSON-RPC
 
+- Pyramid 1.1 compatibility.
+
 0.2 (2011-02-26)
+================
 
 Features
 --------
