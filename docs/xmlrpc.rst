@@ -25,7 +25,7 @@ Example:
    
    @xmlrpc_view()
    def say_hello(request):
-       return 'Hello, %s' % request.xmlrpc_args['name']
+       return 'Hello, %s' % request.rpc_args[0]
 
 To set a different XML-RPC method name than the name of the function, pass
 in a ``method`` parameter:
@@ -35,7 +35,7 @@ in a ``method`` parameter:
     
     @xmlrpc_view(method='say_hello')
     def echo(request):
-        return 'Hello, %s' % request.xmlrpc_args['name']
+        return 'Hello, %s' % request.rpc_args[0]
 
 Or if the route for the XML-RPC endpoint is not named 'RPC2':
 
@@ -44,7 +44,7 @@ Or if the route for the XML-RPC endpoint is not named 'RPC2':
     
     @xmlrpc_view(route_name='my_route')
     def say_hello(request):
-        return 'Hello, %s' % request.xmlrpc_args['name']
+        return 'Hello, %s' % request.rpc_args[0]
 
 Next, add the route to expose the XML-RPC endpoint. 
 
