@@ -79,7 +79,7 @@ def xmlrpc_endpoint(request):
     
         @xmlrpc_view()
         def list_users(request):
-            xml_args = request.xmlrpc_args
+            args = request.rpc_args
             return {'users': [...]}
     
     Existing views that return a dict can be used with xmlrpc_view.
