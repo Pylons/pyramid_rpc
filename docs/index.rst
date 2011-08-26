@@ -9,12 +9,9 @@ framework.
 
 Currently available RPC Implementations:
 
-* `XML-RPC <http://www.xmlrpc.com/>`_
 * `Action Message Format (AMF) via PyAMF <http://pyamf.org/index.html>`_
-
-Implementations planned for:
-
 * `JSON-RPC <http://json-rpc.org/wiki/specification>`_
+* `XML-RPC <http://www.xmlrpc.com/>`_
 
 File an issue on the `GitHub Issue Tracker for pyramid_rpc
 <https://github.com/Pylons/pyramid_rpc/issues>`_ to request additional RPC's
