@@ -312,15 +312,17 @@ class TestJSONRPCIntegration(unittest.TestCase):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
-        with self.assertRaises(ConfigurationError):
-            config.add_jsonrpc_method(lambda r: None, method='dummy')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, method='dummy')
 
     def test_add_jsonrpc_method_with_no_method(self):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
-        with self.assertRaises(ConfigurationError):
-            config.add_jsonrpc_method(lambda r: None, endpoint='rpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, endpoint='rpc')
 
     def test_it(self):
         def view(request):
