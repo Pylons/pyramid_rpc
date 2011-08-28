@@ -106,7 +106,7 @@ class MapplyViewMapper(object):
         if positional:
             positional = list(positional)
             if len(positional) > nargs:
-                raise TypeError('too many arguments')
+                raise ViewMapperArgsInvalid('too many arguments')
             args = positional
 
         get = keyword.get
@@ -116,10 +116,14 @@ class MapplyViewMapper(object):
             v = get(name, args)
             if v is args:
                 if index < nrequired:
-                    raise TypeError('argument %s was omitted' % name)
+                    raise ViewMapperArgsInvalid(
+                        'argument %s was omitted' % name)
                 else:
                     v = defaults[index-nrequired]
             args.append(v)
 
         args = tuple(args)
         return ob(*args)
+
+class ViewMapperArgsInvalid(TypeError):
+    pass
