@@ -2,9 +2,8 @@ pyramid_rpc README
 ==================
 
 - Support system.* XML-RPC API Methods and introspection
-- Deprecate old-style double-dispatch in jsonrpc and xmlrpc.
+
 - Add support for batching requests via tweens.
+
 - Add support for traversal via '{rpc_method}' pattern to allow
   fine-grained security based on the rpc method or possible params.
-- Add decorator versions of the add_method calls (i.e. @jsonrpc_method
-  as an alias for config.add_jsonrpc_method).
