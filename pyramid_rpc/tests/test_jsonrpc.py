@@ -504,6 +504,31 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result['jsonrpc'], '2.0')
         self.assertEqual(result['error']['code'], -32603)
 
+    def test_it_with_cls_view(self):
+        class view(object):
+            def __init__(self, request):
+                self.request = request
+
+            def foo(self, a, b):
+                return [a, b]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy',
+                                  attr='foo')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
+                  'params': [2, 3]}
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                        params=json.dumps(params))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        result = json.loads(resp.body)
+        self.assertEqual(result['id'], 5)
+        self.assertEqual(result['jsonrpc'], '2.0')
+        self.assertEqual(result['result'], [2, 3])
+
     def test_it_with_default_args(self):
         def view(request, a, b, c='bar'):
             return [a, b, c]
