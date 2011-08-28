@@ -203,11 +203,13 @@ def exception_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
     if isinstance(exc, ViewMapperArgsInvalid):
         exc = JsonRpcParamsInvalid()
+    log.debug('rpc_id:%s exception "%s"', rpc_id, exc)
     return jsonrpc_error_response(exc, rpc_id)
 
 
 def notfound_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
+    log.debug('rpc_id:%s No method found for "%s"', rpc_id, request.rpc_method)
     return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
 
 
