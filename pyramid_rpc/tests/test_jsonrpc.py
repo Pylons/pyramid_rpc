@@ -594,7 +594,7 @@ class FunctionalTest(unittest.TestCase):
             # Pyramid 1.1
             from pyramid.renderers import null_renderer
             renderer = null_renderer
-        except ImportError:
+        except ImportError: # pragma: no cover
             # Pyramid 1.0
             renderer = None
         from pyramid.config import Configurator
@@ -624,9 +624,6 @@ class FunctionalTest(unittest.TestCase):
 class DummyRoute:
     def __init__(self, route_name):
         self.name = route_name
-
-def dummy_view(request, a, b):
-    return a + b
 
 class DummyView:
     def __init__(self, response=None, raise_exception=None):
