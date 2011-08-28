@@ -535,6 +535,7 @@ class TestJSONRPCMethodDecorator(unittest.TestCase):
         self.assertRaises(ConfigurationError, config.scan,
                           'pyramid_rpc.tests.fixtures.jsonrpc_no_endpoint')
 
+
 class FunctionalTest(unittest.TestCase):
 
     def test_it(self):
