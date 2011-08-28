@@ -272,7 +272,8 @@ class TestXMLRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         try:
             self._callFUT(app, None, (2, 3))
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32601)
         else: # pragma: no cover
             raise AssertionError
@@ -298,7 +299,8 @@ class TestXMLRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         try:
             self._callFUT(app, 'dummy', (2, 3))
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32601)
         else: # pragma: no cover
             raise AssertionError
@@ -313,14 +315,15 @@ class TestXMLRPCIntegration(unittest.TestCase):
                         params='<')
         try:
             xmlrpclib.loads(resp.body)
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32700)
         else: # pragma: no cover
             raise AssertionError
 
     def test_it_with_general_exception(self):
         def view(request, a, b):
-            raise Exception()
+            raise Exception
         config = self.config
         config.include('pyramid_rpc.xmlrpc')
         config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
@@ -329,7 +332,8 @@ class TestXMLRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         try:
             self._callFUT(app, 'dummy', (2, 3))
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32500)
         else: # pragma: no cover
             raise AssertionError
@@ -373,7 +377,8 @@ class TestXMLRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         try:
             self._callFUT(app, 'dummy', (2,))
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32602)
         else: # pragma: no cover
             raise AssertionError
@@ -388,7 +393,8 @@ class TestXMLRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         try:
             self._callFUT(app, 'dummy', (2, 3, 4))
-        except xmlrpclib.Fault as exc:
+        except xmlrpclib.Fault:
+            exc = sys.exc_info()[1] # 2.5 compat
             self.assertEqual(exc.faultCode, -32602)
         else: # pragma: no cover
             raise AssertionError
