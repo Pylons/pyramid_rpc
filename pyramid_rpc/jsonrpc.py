@@ -10,6 +10,7 @@ from pyramid.interfaces import IViewMapperFactory, IViewMapper
 from pyramid.response import Response
 from pyramid.view import view_config
 
+from zope.deprecation import deprecated
 from zope.interface import implements, classProvides
 
 from pyramid_rpc.api import view_lookup
@@ -208,6 +209,10 @@ def jsonrpc_endpoint(request):
                        content_type="application/json") 
 
     return jsonrpc_error_response(JsonRpcRequestInvalid())
+
+deprecated('jsonrpc_endpoint',
+           ('Deprecated as of pyramid_rpc 0.3, use the new API as described '
+            'in the documentation.'))
 
 
 def _call_rpc(request, body):
