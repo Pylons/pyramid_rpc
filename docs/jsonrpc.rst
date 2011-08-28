@@ -65,18 +65,17 @@ Example:
 
 .. code-block:: python
 
-    def create_user_view(request):
-        args = request.rpc_args
+    def create_user_view(request, login, password):
         userid = 0 # create a new user
         return {
-            'login': args[0],
+            'login': login,
             'id': userid,
         }
 
     from pyramid_rpc.jsonrpc import jsonrpc_method
 
     @jsonrpc_method(method='create', endpoint='api')
-    def api_create(request):
+    def api_create(request, login):
         return {}
 
     config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
@@ -85,6 +84,19 @@ Example:
 
 Because this is a thin layer around Pyramid's views, it is possible to add
 extra view predicates to the method, as well as ``permission`` requirements.
+
+View Mappers
+------------
+
+A view mapper is registered for JSON-RPC methods by default which will
+match the arguments from ``request.rpc_args`` to the parameters of the
+view. Optional arguments are allowed and an error will be returned if too
+many or too few arguments are supplied to the view.
+
+This default view mapper may be overridden by setting ``mapper=None``
+when using :func:`~pyramid_rpc.jsonrpc.jsonrpc_method` or
+:func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`. Of course, another mapper
+may be specified as well.
 
 .. _jsonrpc_api:
 
@@ -104,11 +116,19 @@ Public
 
   .. autofunction:: jsonrpc_method
 
-  .. autoclass:: JsonRpcViewMapper
-
 Exceptions
 ++++++++++
 
 .. automodule:: pyramid_rpc.jsonrpc
 
   .. autoclass:: JsonRpcError
+
+  .. autoclass:: JsonRpcParseError
+
+  .. autoclass:: JsonRpcRequestInvalid
+
+  .. autoclass:: JsonRpcMethodNotFound
+
+  .. autoclass:: JsonRpcParamsInvalid
+
+  .. autoclass:: JsonRpcInternalError

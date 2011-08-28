@@ -144,6 +144,10 @@ class JsonRpcViewMapper(object):
                 return view(request, **rpc_args)
         return _mapped_callable
 
+deprecated('JsonRpcViewMapper',
+           ('Deprecated as of pyramid_rpc 0.3, use the new API as described '
+            'in the documentation which utilizes a view mapper by default.'))
+
 
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
@@ -333,6 +337,11 @@ def add_jsonrpc_method(self, view, **kw):
 
     A JSON-RPC method also accepts all of the arguments supplied to
     Pyramid's ``add_view`` method.
+
+    A view mapper is registered by default which will match the
+    ``request.rpc_args`` to parameters on the view. To override this
+    behavior simply set the ``mapper`` argument to None or another
+    view mapper.
 
     """
     endpoint = kw.pop('endpoint', kw.pop('route_name', None))
