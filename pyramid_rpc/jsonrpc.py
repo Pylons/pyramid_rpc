@@ -201,20 +201,22 @@ def _call_rpc(request, body):
 
 def exception_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
-    if isinstance(exc, ViewMapperArgsInvalid):
-        exc = JsonRpcParamsInvalid()
-    log.debug('rpc_id:%s exception "%s"', rpc_id, exc)
-    return jsonrpc_error_response(exc, rpc_id)
+    if isinstance(exc, JsonRpcError):
+        fault = exc
+    elif isinstance(exc, HTTPNoContent):
+        return exc
+    elif isinstance(exc, HTTPNotFound):
+        fault = JsonRpcMethodNotFound()
+        log.debug('json-rpc method not found rpc_id:%s "%s"',
+                  request.rpc_id, request.rpc_method)
+    elif isinstance(exc, ViewMapperArgsInvalid):
+        fault = JsonRpcParamsInvalid()
+        log.debug('json-rpc invalid method params')
+    else:
+        fault = JsonRpcInternalError()
+        log.exception('json-rpc exception rpc_id:%s "%s"', rpc_id, exc)
 
-
-def notfound_view(exc, request):
-    rpc_id = getattr(request, 'rpc_id', None)
-    log.debug('rpc_id:%s No method found for "%s"', rpc_id, request.rpc_method)
-    return jsonrpc_error_response(JsonRpcMethodNotFound(), rpc_id)
-
-
-def notification_view(exc, request):
-    return exc
+    return jsonrpc_error_response(fault, rpc_id)
 
 
 def jsonrpc_renderer(info):
@@ -279,8 +281,6 @@ def add_jsonrpc_endpoint(self, name, *args, **kw):
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(jsonrpc_endpoint_predicate)
     self.add_route(name, *args, **kw)
-    self.add_view(notfound_view, route_name=name, context=HTTPNotFound)
-    self.add_view(notification_view, route_name=name, context=HTTPNoContent)
     self.add_view(exception_view, route_name=name, context=Exception)
 
 
