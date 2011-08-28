@@ -525,12 +525,11 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result['result'], [2, 3, 'bar'])
 
     def test_it_with_missing_args(self):
-        def view(request, a, b):
-            return [a, b]
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
         config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
-        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        config.add_jsonrpc_method(lambda r, a, b: a,
+                                  endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
         params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
@@ -545,12 +544,11 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result['error']['code'], -32602)
 
     def test_it_with_too_many_args(self):
-        def view(request, a, b):
-            return [a, b]
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
         config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
-        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        config.add_jsonrpc_method(lambda r, a, b: a,
+                                  endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
         params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
