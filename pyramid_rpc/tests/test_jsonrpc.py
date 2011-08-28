@@ -14,6 +14,30 @@ class TestJSONRPCIntegration(unittest.TestCase):
     def tearDown(self):
         testing.tearDown()
 
+    def _callFUT(self, app, method, params, id=5, version='2.0',
+                 path='/api/jsonrpc', content_type='application/json'):
+        body = {}
+        if id is not None:
+            body['id'] = id
+        if version is not None:
+            body['jsonrpc'] = version
+        if method is not None:
+            body['method'] = method
+        if params is not None:
+            body['params'] = params
+        resp = app.post(path, content_type=content_type,
+                        params=json.dumps(body))
+        if id is not None:
+            self.assertEqual(resp.status_int, 200)
+            self.assertEqual(resp.content_type, 'application/json')
+            result = json.loads(resp.body)
+            self.assertEqual(result['jsonrpc'], '2.0')
+            self.assertEqual(result['id'], id)
+        else:
+            self.assertEqual(resp.status_int, 204)
+            result = resp.body
+        return result
+
     def test_add_jsonrpc_method_with_no_endpoint(self):
         from pyramid.exceptions import ConfigurationError
         config = self.config
@@ -39,15 +63,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], {'a': 2, 'b': 3})
 
     def test_it_with_no_mapper(self):
@@ -60,15 +76,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
                                   mapper=None)
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], 2)
 
     def test_it_with_multiple_methods(self):
@@ -82,15 +90,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
                                   endpoint='rpc', method='dummy2')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], 2)
 
     def test_it_with_no_version(self):
@@ -99,14 +99,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'method': 'dummy', 'id': 5, 'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3], version=None)
         self.assertEqual(result['error']['code'], -32600)
 
     def test_it_with_no_method(self):
@@ -115,14 +108,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'id': 5, 'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, None, [2, 3])
         self.assertEqual(result['error']['code'], -32600)
 
     def test_it_with_no_id(self):
@@ -134,11 +120,8 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 204)
-        self.assertEqual(resp.body, '')
+        result = self._callFUT(app, 'dummy', [2, 3], id=None)
+        self.assertEqual(result, '')
 
     def test_it_with_no_params(self):
         def view(request):
@@ -150,14 +133,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'id': 5, 'method': 'dummy'}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', None)
         self.assertEqual(result['result'], 'no params')
 
     def test_it_with_invalid_method(self):
@@ -166,14 +142,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'id': 5, 'method': 'foo', 'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'foo', [2, 3])
         self.assertEqual(result['error']['code'], -32601)
 
     def test_it_with_invalid_body(self):
@@ -199,15 +168,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['error']['code'], -32603)
 
     def test_it_with_cls_view(self):
@@ -224,15 +185,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
                                   attr='foo')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], [2, 3])
 
     def test_it_with_default_args(self):
@@ -244,15 +197,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], [2, 3, 'bar'])
 
     def test_it_with_missing_args(self):
@@ -263,15 +208,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
                                   endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2])
         self.assertEqual(result['error']['code'], -32602)
 
     def test_it_with_too_many_args(self):
@@ -282,62 +219,30 @@ class TestJSONRPCIntegration(unittest.TestCase):
                                   endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'dummy', 'id': 5,
-                  'params': [2, 3, 4]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'dummy', [2, 3, 4])
         self.assertEqual(result['error']['code'], -32602)
 
-
-class TestJSONRPCMethodDecorator(unittest.TestCase):
-    def setUp(self):
-        self.config = testing.setUp()
-
-    def tearDown(self):
-        testing.tearDown()
-
-    def test_it(self):
+    def test_method_decorator(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
         config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
         config.scan('pyramid_rpc.tests.fixtures.jsonrpc')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'create', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'create', [2, 3])
         self.assertEqual(result['result'], {'create': 'bob'})
 
-    def test_it_with_method_from_view_name(self):
+    def test_method_decorator_with_method_from_view_name(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
         config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
         config.scan('pyramid_rpc.tests.fixtures.jsonrpc_method_default')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        params = {'jsonrpc': '2.0', 'method': 'create', 'id': 5,
-                  'params': [2, 3]}
-        resp = app.post('/api/jsonrpc', content_type='application/json',
-                        params=json.dumps(params))
-        self.assertEqual(resp.status_int, 200)
-        self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
-        self.assertEqual(result['id'], 5)
-        self.assertEqual(result['jsonrpc'], '2.0')
+        result = self._callFUT(app, 'create', [2, 3])
         self.assertEqual(result['result'], {'create': 'bob'})
 
-    def test_it_no_endpoint(self):
+    def test_method_decorator_no_endpoint(self):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
