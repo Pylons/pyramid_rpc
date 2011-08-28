@@ -73,6 +73,12 @@ Example:
             'id': userid,
         }
 
+    from pyramid_rpc.jsonrpc import jsonrpc_method
+
+    @jsonrpc_method(method='create', endpoint='api')
+    def api_create(request):
+        return {}
+
     config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
     config.add_jsonrpc_method(create_user_view,
                               endpoint='api', method='users.createNew')
@@ -95,6 +101,8 @@ Public
   .. autofunction:: add_jsonrpc_endpoint
 
   .. autofunction:: add_jsonrpc_method
+
+  .. autofunction:: jsonrpc_method
 
   .. autoclass:: JsonRpcViewMapper
 

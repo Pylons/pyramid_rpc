@@ -285,14 +285,15 @@ def setup_jsonrpc(request):
 
 
 def add_jsonrpc_endpoint(self, name, *args, **kw):
-    """ Add an endpoint for handling JSON-RPC.
+    """Add an endpoint for handling JSON-RPC.
 
     name
 
         The name of the endpoint.
 
-    A JSON-RPC method also accepts all of the arguments supplied to Pyramid's
-    ``add_route`` method.
+    A JSON-RPC method also accepts all of the arguments supplied to
+    Pyramid's ``add_route`` method.
+
     """
     def jsonrpc_endpoint_predicate(info, request):
         # potentially setup either rpc v1 or v2 from the parsed body
@@ -311,7 +312,7 @@ def add_jsonrpc_endpoint(self, name, *args, **kw):
 
 
 def add_jsonrpc_method(self, view, **kw):
-    """ Add a method to a JSON-RPC endpoint.
+    """Add a method to a JSON-RPC endpoint.
 
     endpoint
 
@@ -321,8 +322,9 @@ def add_jsonrpc_method(self, view, **kw):
 
         The name of the method.
 
-    A JSON-RPC method also accepts all of the arguments supplied to Pyramid's
-    ``add_view`` method.
+    A JSON-RPC method also accepts all of the arguments supplied to
+    Pyramid's ``add_view`` method.
+
     """
     endpoint = kw.pop('endpoint', kw.pop('route_name', None))
     if endpoint is None:
@@ -345,11 +347,14 @@ def add_jsonrpc_method(self, view, **kw):
 
 
 class jsonrpc_method(object):
-    """ This decorator may be used with pyramid view callables to enable them
-    to respond to JSON-RPC method calls.
+    """This decorator may be used with pyramid view callables to enable
+    them to respond to JSON-RPC method calls.
 
-    If ``method`` is not supplied, then the callable name will be used for
-    the method name.
+    If ``method`` is not supplied, then the callable name will be used
+    for the method name.
+
+    The decorator is lazy analog to ``config.add_jsonrpc_method`` and
+    accepts all of the same arguments.
 
     """
     venusian = venusian # for testing injection
