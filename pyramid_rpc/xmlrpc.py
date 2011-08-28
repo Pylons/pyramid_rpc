@@ -265,7 +265,6 @@ class xmlrpc_method(object):
     the same arguments.
 
     """
-    venusian = venusian # for testing injection
     def __init__(self, method=None, **kw):
         endpoint = kw.pop('endpoint', kw.pop('route_name', None))
         if endpoint is None:
@@ -280,7 +279,6 @@ class xmlrpc_method(object):
         self.kw = kw
 
     def __call__(self, wrapped):
-        view_config.venusian = self.venusian
         method = self.method or wrapped.__name__
         kw = self.kw.copy()
         def xmlrpc_method_predicate(context, request):

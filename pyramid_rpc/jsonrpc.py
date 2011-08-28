@@ -9,7 +9,6 @@ from pyramid.response import Response
 from pyramid.view import view_config
 
 from pyramid_rpc.api import MapplyViewMapper
-from pyramid_rpc.api import view_lookup
 from pyramid_rpc.api import ViewMapperArgsInvalid
 
 
@@ -213,7 +212,6 @@ class jsonrpc_method(object):
     the same arguments.
 
     """
-    venusian = venusian # for testing injection
     def __init__(self, method=None, **kw):
         endpoint = kw.pop('endpoint', kw.pop('route_name', None))
         if endpoint is None:
@@ -228,7 +226,6 @@ class jsonrpc_method(object):
         self.kw = kw
 
     def __call__(self, wrapped):
-        view_config.venusian = self.venusian
         method = self.method or wrapped.__name__
         kw = self.kw.copy()
         def jsonrpc_method_predicate(context, request):
