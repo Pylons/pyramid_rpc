@@ -483,6 +483,58 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result['jsonrpc'], '2.0')
         self.assertEqual(result['error']['code'], -32603)
 
+
+class TestJSONRPCMethodDecorator(unittest.TestCase):
+    def setUp(self):
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def test_it(self):
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
+        config.scan('pyramid_rpc.tests.fixtures.jsonrpc')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        params = {'jsonrpc': '2.0', 'method': 'create', 'id': 5,
+                  'params': [2, 3]}
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                          params=json.dumps(params))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        result = json.loads(resp.body)
+        self.assertEqual(result['id'], 5)
+        self.assertEqual(result['jsonrpc'], '2.0')
+        self.assertEqual(result['result'], {'create': 'bob'})
+
+    def test_it_with_method_from_view_name(self):
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
+        config.scan('pyramid_rpc.tests.fixtures.jsonrpc_method_default')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        params = {'jsonrpc': '2.0', 'method': 'create', 'id': 5,
+                  'params': [2, 3]}
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                          params=json.dumps(params))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        result = json.loads(resp.body)
+        self.assertEqual(result['id'], 5)
+        self.assertEqual(result['jsonrpc'], '2.0')
+        self.assertEqual(result['result'], {'create': 'bob'})
+
+    def test_it_no_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
+        self.assertRaises(ConfigurationError, config.scan,
+                          'pyramid_rpc.tests.fixtures.jsonrpc_no_endpoint')
+
 class FunctionalTest(unittest.TestCase):
 
     def test_it(self):

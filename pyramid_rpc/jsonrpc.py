@@ -1,12 +1,15 @@
 import inspect
 import logging
 
+import venusian
 from pyramid.compat import json
 from pyramid.exceptions import ConfigurationError
 from pyramid.httpexceptions import HTTPNoContent
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.interfaces import IViewMapperFactory, IViewMapper
 from pyramid.response import Response
+from pyramid.view import view_config
+
 from zope.interface import implements, classProvides
 
 from pyramid_rpc.api import view_lookup
@@ -339,6 +342,38 @@ def add_jsonrpc_method(self, view, **kw):
     predicates.append(jsonrpc_method_predicate)
     kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
     self.add_view(view, route_name=endpoint, **kw)
+
+
+class jsonrpc_method(object):
+    """ This decorator may be used with pyramid view callables to enable them
+    to respond to JSON-RPC method calls.
+
+    If ``method`` is not supplied, then the callable name will be used for
+    the method name.
+
+    """
+    venusian = venusian # for testing injection
+    def __init__(self, method=None, **kw):
+        endpoint = kw.pop('endpoint', kw.pop('route_name', None))
+        if endpoint is None:
+            raise ConfigurationError(
+                'Cannot register a JSON-RPC endpoint without specifying the '
+                'name of the endpoint.')
+
+        kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
+        kw['route_name'] = endpoint
+        self.method = method
+        self.kw = kw
+
+    def __call__(self, wrapped):
+        view_config.venusian = self.venusian
+        method = self.method or wrapped.__name__
+        kw = self.kw.copy()
+        def jsonrpc_method_predicate(context, request):
+            return getattr(request, 'rpc_method', None) == method
+        predicates = kw.setdefault('custom_predicates', [])
+        predicates.append(jsonrpc_method_predicate)
+        return view_config(**kw)(wrapped)
 
 
 def includeme(config):
