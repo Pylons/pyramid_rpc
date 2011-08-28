@@ -13,7 +13,9 @@ from pyramid.view import view_config
 from zope.deprecation import deprecated
 from zope.interface import implements, classProvides
 
+from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import view_lookup
+from pyramid_rpc.api import ViewMapperArgsInvalid
 
 __all__ = ['jsonrpc_endpoint']
 
@@ -237,6 +239,8 @@ def _call_rpc(request, body):
 
 def exception_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
+    if isinstance(exc, ViewMapperArgsInvalid):
+        exc = JsonRpcParamsInvalid()
     return jsonrpc_error_response(exc, rpc_id)
 
 
@@ -278,7 +282,7 @@ def setup_jsonrpc(request):
         raise JsonRpcParseError
 
     request.rpc_id = body.get('id')
-    request.rpc_args = body.get('params', [])
+    request.rpc_args = tuple(body.get('params', []))
     request.rpc_method = body.get('method')
     request.rpc_version = body.get('jsonrpc')
 
@@ -347,6 +351,7 @@ def add_jsonrpc_method(self, view, **kw):
         return getattr(request, 'rpc_method', None) == method
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(jsonrpc_method_predicate)
+    kw.setdefault('mapper', MapplyViewMapper)
     kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
     self.add_view(view, route_name=endpoint, **kw)
 
@@ -370,6 +375,7 @@ class jsonrpc_method(object):
                 'Cannot register a JSON-RPC endpoint without specifying the '
                 'name of the endpoint.')
 
+        kw.setdefault('mapper', MapplyViewMapper)
         kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
         kw['route_name'] = endpoint
         self.method = method
