@@ -1,7 +1,11 @@
-import unittest
 import sys
+import unittest
+import warnings
+import xmlrpclib
 
 from pyramid import testing
+
+from webtest import TestApp
 
 class TestXMLRPCMarshal(unittest.TestCase):
     def _callFUT(self, value):
@@ -62,7 +66,7 @@ class TestXMLRPCViewDecorator(unittest.TestCase):
         decorator.venusian = venusian
         def foo(): pass
         wrapped = decorator(foo)
-        self.failUnless(wrapped is foo)
+        self.assertTrue(wrapped is foo)
         settings = call_venusian(venusian)
         self.assertEqual(len(settings), 1)
         self.assertEqual(settings[0]['permission'], None)
@@ -76,9 +80,11 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         testing.cleanUp()
         from pyramid.threadlocal import get_current_registry
         self.registry = get_current_registry()
+        warnings.filterwarnings('ignore')
 
     def tearDown(self):
         testing.cleanUp()
+        warnings.resetwarnings()
 
     def _getTargetClass(self):
         from pyramid_rpc.xmlrpc import xmlrpc_endpoint
@@ -187,3 +193,231 @@ def call_venusian(venusian):
     for wrapped, callback, category in venusian.attachments:
         callback(context, None, None)
     return context.config.settings
+
+class TestXMLRPCIntegration(unittest.TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def _callFUT(self, app, method, params):
+        resp = app.post('/api/xmlrpc', content_type='text/xml',
+                        params=xmlrpclib.dumps(params, methodname=method))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.content_type, 'text/xml')
+        return xmlrpclib.loads(resp.body)[0][0]
+
+    def test_add_xmlrpc_method_with_no_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_xmlrpc_method,
+                          lambda r: None, method='dummy')
+
+    def test_add_xmlrpc_method_with_no_method(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_xmlrpc_method,
+                          lambda r: None, endpoint='rpc')
+
+    def test_it(self):
+        def view(request, a, b):
+            return {'a': a, 'b': b}
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', (2, 3))
+        self.assertEqual(resp, {'a': 2, 'b': 3})
+
+    def test_it_with_no_mapper(self):
+        def view(request):
+            return request.rpc_args[0]
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy',
+                                  mapper=None)
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', (2, 3))
+        self.assertEqual(resp, 2)
+
+    def test_it_with_multiple_methods(self):
+        def view(request, a, b):
+            return a
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        config.add_xmlrpc_method(lambda r: 'fail',
+                                  endpoint='rpc', method='dummy2')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', (2, 3))
+        self.assertEqual(resp, 2)
+
+    def test_it_with_no_method(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        try:
+            self._callFUT(app, None, (2, 3))
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32601)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_it_with_no_params(self):
+        def view(request):
+            self.assertEqual(request.rpc_args, ())
+            return 'no params'
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ())
+        self.assertEqual(resp, 'no params')
+
+    def test_it_with_invalid_method(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        try:
+            self._callFUT(app, 'dummy', (2, 3))
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32601)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_it_with_invalid_body(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = app.post('/api/xmlrpc', content_type='text/xml',
+                        params='<')
+        try:
+            xmlrpclib.loads(resp.body)
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32700)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_it_with_general_exception(self):
+        def view(request, a, b):
+            raise Exception()
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        try:
+            self._callFUT(app, 'dummy', (2, 3))
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32500)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_it_with_cls_view(self):
+        class view(object):
+            def __init__(self, request):
+                self.request = request
+
+            def foo(self, a, b):
+                return [a, b]
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy',
+                                  attr='foo')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', (2, 3))
+        self.assertEqual(resp, [2, 3])
+
+    def test_it_with_default_args(self):
+        def view(request, a, b, c='bar'):
+            return [a, b, c]
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', (2, 3))
+        self.assertEqual(resp, [2, 3, 'bar'])
+
+    def test_it_with_missing_args(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(lambda r, a, b: a,
+                                  endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        try:
+            self._callFUT(app, 'dummy', (2,))
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32602)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_it_with_too_many_args(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(lambda r, a, b: a,
+                                  endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        try:
+            self._callFUT(app, 'dummy', (2, 3, 4))
+        except xmlrpclib.Fault as exc:
+            self.assertEqual(exc.faultCode, -32602)
+        else: # pragma: no cover
+            raise AssertionError
+
+    def test_method_decorator(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
+        config.scan('pyramid_rpc.tests.fixtures.xmlrpc')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'create', (2, 3))
+        self.assertEqual(resp, {'create': 'bob'})
+
+    def test_method_decorator_with_method_from_view_name(self):
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
+        config.scan('pyramid_rpc.tests.fixtures.xmlrpc_method_default')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'create', (2, 3))
+        self.assertEqual(resp, {'create': 'bob'})
+
+    def test_method_decorator_with_no_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
+        self.assertRaises(ConfigurationError, config.scan,
+                          'pyramid_rpc.tests.fixtures.xmlrpc_no_endpoint')
+
