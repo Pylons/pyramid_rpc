@@ -1,4 +1,3 @@
-import inspect
 import logging
 
 import venusian
@@ -6,12 +5,10 @@ from pyramid.compat import json
 from pyramid.exceptions import ConfigurationError
 from pyramid.httpexceptions import HTTPNoContent
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.interfaces import IViewMapperFactory, IViewMapper
 from pyramid.response import Response
 from pyramid.view import view_config
 
 from zope.deprecation import deprecated
-from zope.interface import implements, classProvides
 
 from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import view_lookup
@@ -110,45 +107,6 @@ def jsonrpc_error_response(error, id=None):
     return response
 
 
-class JsonRpcViewMapper(object):
-    """
-    Creating mapped view that map rpc arguments to view arguments.
-
-    >>> @rpc_view(mapper=JsonRpcViewMapper)
-    ... def say_hello(request, name):
-    ...     return "Hello, %s" % name
-
-    This is very limited support.
-    
-      - The view callable is assumed only function.
-      - Don't use default values, arbitrary argument lists.
-    """
-
-    implements(IViewMapper)
-    classProvides(IViewMapperFactory)
-
-    def __init__(self, **info):
-        self.info = info
-
-    def __call__(self, view):
-        def _mapped_callable(context, request):
-            rpc_args = request.rpc_args
-            args, varargs, keywords, defaults = inspect.getargspec(view)
-            if isinstance(rpc_args, list):
-                if len(args) != len(rpc_args) + 1: # for request
-                    raise JsonRpcParamsInvalid
-                return view(request, *rpc_args)
-            elif isinstance(rpc_args, dict):
-                if sorted(args[1:]) != sorted(rpc_args.keys()):
-                    raise JsonRpcParamsInvalid
-                return view(request, **rpc_args)
-        return _mapped_callable
-
-deprecated('JsonRpcViewMapper',
-           ('Deprecated as of pyramid_rpc 0.3, use the new API as described '
-            'in the documentation which utilizes a view mapper by default.'))
-
-
 def jsonrpc_endpoint(request):
     """A base view to be used with add_route to setup a JSON-RPC dispatch
     endpoint
@@ -192,7 +150,7 @@ def jsonrpc_endpoint(request):
             return jsonrpc_response(data, rpc_id)
         except Exception, e:
             if rpc_id is None:
-                return Response(content_type="text/plain")
+                return Response(content_type="application/json")
             return jsonrpc_error_response(e, rpc_id)
     
     if isinstance(body, list):

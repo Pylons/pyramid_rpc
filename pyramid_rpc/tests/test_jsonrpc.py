@@ -1,74 +1,21 @@
 import unittest
+import warnings
 
 from pyramid import testing
 from pyramid.compat import json
 
 from webtest import TestApp
 
-class TestJSONRPCMapper(unittest.TestCase):
-    def _getTargetClass(self):
-        from pyramid_rpc.jsonrpc import JsonRpcViewMapper
-        return JsonRpcViewMapper
-
-    def _makeOne(self, *args, **kwargs):
-        return self._getTargetClass()(*args, **kwargs)
-
-    def test_implements(self):
-        from pyramid.interfaces import IViewMapperFactory
-        from pyramid.interfaces import IViewMapper
-        cls  = self._getTargetClass()
-        self.assertTrue(IViewMapperFactory.providedBy(cls))
-        self.assertTrue(IViewMapper.implementedBy(cls))
-        target = cls()
-        self.assertTrue(IViewMapper.providedBy(target))
-
-    def test_view_callable_with_list(self):
-
-        target = self._makeOne()
-        view_callable = target(dummy_view)
-        request = testing.DummyRequest()
-        request.rpc_args = [1, 2]
-        context = object()
-        result = view_callable(context, request)
-        self.assertEqual(result, 3)
-
-    def test_view_callable_with_dict(self):
-        target = self._makeOne()
-        view_callable = target(dummy_view)
-        request = testing.DummyRequest()
-        request.rpc_args = dict(a=3, b=4)
-        context = object()
-        result = view_callable(context, request)
-        self.assertEqual(result, 7)
-
-    def test_view_callable_with_invalid_args(self):
-        from pyramid_rpc.jsonrpc import JsonRpcParamsInvalid
-
-        target = self._makeOne()
-        view_callable = target(dummy_view)
-        request = testing.DummyRequest()
-        request.rpc_args = []
-        context = object()
-        self.assertRaises(JsonRpcParamsInvalid, view_callable, context, request)
-
-    def test_view_callable_with_invalid_keywords(self):
-        from pyramid_rpc.jsonrpc import JsonRpcParamsInvalid
-
-        target = self._makeOne()
-        view_callable = target(dummy_view)
-        request = testing.DummyRequest()
-        request.rpc_args = {}
-        context = object()
-        self.assertRaises(JsonRpcParamsInvalid, view_callable, context, request)
-
 class TestJSONRPCEndPoint(unittest.TestCase):
     def setUp(self):
         testing.cleanUp()
         from pyramid.threadlocal import get_current_registry
         self.registry = get_current_registry()
+        warnings.filterwarnings('ignore')
 
     def tearDown(self):
         testing.cleanUp()
+        warnings.resetwarnings()
 
     def _getTargetClass(self):
         from pyramid_rpc.jsonrpc import jsonrpc_endpoint
@@ -652,15 +599,14 @@ class FunctionalTest(unittest.TestCase):
             renderer = None
         from pyramid.config import Configurator
         from pyramid_rpc.jsonrpc import jsonrpc_endpoint
-        from pyramid_rpc.jsonrpc import JsonRpcViewMapper
         config = Configurator()
         config.add_route('JSON-RPC', 'apis/rpc')
         config.add_view(jsonrpc_endpoint, route_name='JSON-RPC')
-        def dummy_rpc(request, a, b):
+        def dummy_rpc(request):
+            a, b = request.rpc_args
             return a + b
         config.add_view(route_name='JSON-RPC', name='dummy_rpc',
-                        view=dummy_rpc, mapper=JsonRpcViewMapper,
-                        renderer=renderer)
+                        view=dummy_rpc, renderer=renderer)
         app = config.make_wsgi_app()
         import webtest
         app = webtest.TestApp(app)
