@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 import os
 
@@ -46,6 +46,6 @@ setup(name='pyramid_rpc',
       include_package_data=True,
       zip_safe=False,
       tests_require = ['setuptools', 'pyramid', 'pyamf', 'nose'],
-      install_requires=['setuptools','pyramid'],
+      install_requires=['setuptools','pyramid >= 1.2'],
       test_suite="pyramid_rpc.tests",
       )

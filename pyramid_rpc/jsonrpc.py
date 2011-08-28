@@ -372,8 +372,9 @@ class jsonrpc_method(object):
     If ``method`` is not supplied, then the callable name will be used
     for the method name.
 
-    The decorator is lazy analog to ``config.add_jsonrpc_method`` and
-    accepts all of the same arguments.
+    This is the lazy analog to the
+    :func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`` and accepts all of
+    the same arguments.
 
     """
     venusian = venusian # for testing injection
