@@ -13,7 +13,7 @@ Features
 
 - JSON-RPC
 
-  + Deprecated the jsonrpc_endpoint API that some people may be using.
+  + Removed the *unreleased* JSON-RPC support that was in master.
 
   + Added a new API for JSON-RPC that supports more features expected
     from routes and views including the ability to set permissions on
