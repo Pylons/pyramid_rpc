@@ -1,6 +1,5 @@
 import logging
 
-import venusian
 from pyramid.compat import json
 from pyramid.exceptions import ConfigurationError
 from pyramid.httpexceptions import HTTPNoContent

@@ -15,12 +15,10 @@ class TestXMLRPCMarshal(unittest.TestCase):
     def test_xmlrpc_marshal_normal(self):
         data = 1
         marshalled = self._callFUT(data)
-        import xmlrpclib
         self.assertEqual(marshalled, xmlrpclib.dumps((data,),
                                                      methodresponse=True))
 
     def test_xmlrpc_marshal_fault(self):
-        import xmlrpclib
         fault = xmlrpclib.Fault(1, 'foo')
         data = self._callFUT(fault)
         self.assertEqual(data, xmlrpclib.dumps(fault))
@@ -31,7 +29,6 @@ class TestParseXMLRPCRequest(unittest.TestCase):
         return parse_xmlrpc_request(request)
 
     def test_normal(self):
-        import xmlrpclib
         param = 1
         packet = xmlrpclib.dumps((param,), methodname='__call__')
         request = testing.DummyRequest()
@@ -62,16 +59,14 @@ class TestXMLRPCViewDecorator(unittest.TestCase):
 
     def test_call_function(self):
         decorator = self._makeOne()
-        venusian = DummyVenusian()
-        decorator.venusian = venusian
+        settings = []
+        def view_config(**kw):
+            settings.append(kw)
+            return lambda x: x
         def foo(): pass
-        wrapped = decorator(foo)
+        wrapped = decorator(foo, view_config=view_config)
         self.assertTrue(wrapped is foo)
-        settings = call_venusian(venusian)
         self.assertEqual(len(settings), 1)
-        self.assertEqual(settings[0]['permission'], None)
-        self.assertEqual(settings[0]['context'], None)
-        self.assertEqual(settings[0]['request_type'], None)
         self.assertEqual(settings[0]['name'], 'foo')
         self.assertEqual(settings[0]['route_name'], 'RPC2')
 
@@ -159,40 +154,6 @@ class DummyView:
         self.context = context
         self.request = request
         return self.response
-
-class DummyVenusianInfo(object):
-    scope = 'notaclass'
-    module = sys.modules['pyramid_rpc.tests']
-    codeinfo = None
-
-class DummyVenusian(object):
-    def __init__(self, info=None):
-        if info is None:
-            info = DummyVenusianInfo()
-        self.info = info
-        self.attachments = []
-
-    def attach(self, wrapped, callback, category=None):
-        self.attachments.append((wrapped, callback, category))
-        return self.info
-
-class DummyConfig(object):
-    registry = None
-    def __init__(self):
-        self.settings = []
-
-    def add_view(self, **kw):
-        self.settings.append(kw)
-
-class DummyVenusianContext(object):
-    def __init__(self):
-        self.config = DummyConfig()
-        
-def call_venusian(venusian):
-    context = DummyVenusianContext()
-    for wrapped, callback, category in venusian.attachments:
-        callback(context, None, None)
-    return context.config.settings
 
 class TestXMLRPCIntegration(unittest.TestCase):
 

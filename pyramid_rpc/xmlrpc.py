@@ -1,6 +1,5 @@
 import logging
 
-import venusian
 import xmlrpclib
 
 from pyramid.exceptions import ConfigurationError
@@ -79,13 +78,13 @@ class xmlrpc_view(object):
     'RPC2').
     
     """
-    venusian = venusian # for testing injection
     def __init__(self, method=None, route_name='RPC2'):
         self.method = method
         self.route_name = route_name
 
-    def __call__(self, wrapped):
-        view_config.venusian = self.venusian
+
+    def __call__(self, wrapped, view_config=view_config):
+        # view_config passable for unit testing purposes only
         method_name = self.method or wrapped.__name__
         try:
             # pyramid 1.1

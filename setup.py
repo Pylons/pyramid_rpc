@@ -45,7 +45,7 @@ setup(name='pyramid_rpc',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      tests_require = ['setuptools', 'pyramid', 'pyamf', 'nose'],
+      tests_require = ['setuptools', 'pyramid', 'pyamf', 'nose', 'WebTest'],
       install_requires=['setuptools','pyramid >= 1.2a1'],
       test_suite="pyramid_rpc.tests",
       )
