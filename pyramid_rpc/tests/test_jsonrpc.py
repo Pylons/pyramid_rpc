@@ -1,5 +1,4 @@
 import unittest
-import warnings
 
 from pyramid import testing
 from pyramid.compat import json

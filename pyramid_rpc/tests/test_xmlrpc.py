@@ -119,8 +119,6 @@ class TestXMLRPCEndPoint(unittest.TestCase):
         self.assertEqual(response.content_length, 202)
     
     def test_xmlrpc_endpoint_not_found(self):
-        from pyramid.interfaces import IViewClassifier
-        from pyramid.exceptions import NotFound
         xmlrpc_endpoint = self._makeOne()
         request = self._makeDummyRequest()
         request.body = DummyXMLBody

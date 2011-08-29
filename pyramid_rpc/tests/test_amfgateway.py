@@ -148,7 +148,7 @@ class TestAmfViewGateway(unittest.TestCase):
             executed.append(True)
 
         gw.addService(echo)
-        response = self.doRequest(self._makeRequestBody('echo', 'hello'), gw)
+        self.doRequest(self._makeRequestBody('echo', 'hello'), gw)
         assert len(executed) > 0
 
     def test_expected_exception_echo(self):
