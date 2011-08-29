@@ -5,7 +5,8 @@ JSON-RPC
 ========
 
 `pyramid_rpc` supports 
-`JSON-RPC 2.0 Specification <http://groups.google.com/group/json-rpc/web/json-rpc-2-0>`_ .
+`JSON-RPC 2.0 Specification
+<http://groups.google.com/group/json-rpc/web/json-rpc-2-0>`_ .
 
 Setup
 =====
@@ -65,24 +66,40 @@ Example:
 
 .. code-block:: python
 
-    def create_user_view(request, login, password):
-        userid = 0 # create a new user
-        return {
-            'login': login,
-            'id': userid,
-        }
+    def say_hello(request, name):
+        return 'Hello, ' + name
+
+    config.add_jsonrpc_method(say_hello, endpoint='api', method='say_hello')
+
+If you prefer, you can use the :func:`~pyramid_rpc.jsonrpc.jsonrpc_method`
+view decorator to declare your methods closer to your actual code.
+Remember when using this lazy configuration technique, it's always necessary
+to call ``config.scan()`` from within your setup code.
+
+.. code-block:: python
 
     from pyramid_rpc.jsonrpc import jsonrpc_method
 
-    @jsonrpc_method(method='create', endpoint='api')
-    def api_create(request, login):
-        return {}
+    @jsonrpc_method(endpoint='api')
+    def say_hello(request, name):
+        return 'Hello, ' + name
 
-    config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
-    config.add_jsonrpc_method(create_user_view,
-                              endpoint='api', method='users.createNew')
+    config.scan()
 
-Because this is a thin layer around Pyramid's views, it is possible to add
+To set the RPC method to something other than the name of the view, specify
+the ``method`` parameter:
+
+.. code-block:: python
+
+    from pyramid_rpc.jsonrpc import jsonrpc_method
+
+    @jsonrpc_method(method='say_hello', endpoint='api')
+    def say_hello_view(request, name):
+        return 'Hello, ' + name
+
+    config.scan()
+
+Because methods are a thin layer around Pyramid's views, it is possible to add
 extra view predicates to the method, as well as ``permission`` requirements.
 
 View Mappers
@@ -102,9 +119,6 @@ may be specified as well.
 
 API
 ===
-
-Public
-------
 
 .. automodule:: pyramid_rpc.jsonrpc
 

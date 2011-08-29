@@ -9,83 +9,117 @@ XML-RPC allows you to expose one or more methods at a particular URL.
 allowing the XML-RPC methods to be located with the rest of your views, or in
 other packages.
 
+Setup
+=====
 
-Exposing XML-RPC Methods
-========================
+Use the ``includeme`` via ``config.include``:
 
-To expose XML-RPC methods, :mod:`pyramid_rpc` comes with a
-:func:`~pyramid_rpc.xmlrpc_endpoint` view that uses view lookup. It will
-locate a view configuration registered with the same ``route_name`` it was
-configured with, and a ``name`` that is the same as the XML-RPC method name.
+.. code-block:: python
+
+    config.include('pyramid_rpc.xmlrpc')
+
+Once activated, the following happens:
+
+#. The :meth:`pyramid_rpc.xmlrpc.add_xmlrpc_endpoint` directive is added to
+   the ``configurator`` instance.
+
+#. The :meth:`pyramid_rpc.xmlrpc.add_xmlrpc_method` directive is added to
+   the ``configurator`` instance.
+
+#. An exception view is registered for ``xmlrpclib.Fault`` exceptions.
+
+Usage
+=====
+
+After including the ``pyramid_rpc.xmlrpc`` package in your project, you can
+add an :term:`endpoint` for handling incoming requests. After that, attach
+several methods to the endpoint to handle specific functions within your api.
+
+Adding a XML-RPC Endpoint
+--------------------------
+
+An :term:`endpoint` is added via the
+:func:`~pyramid_rpc.xmlrpc.add_xmlrpc_endpoint` directive on the
+``configurator`` instance.
 
 Example:
 
 .. code-block:: python
-   :linenos:
-   
-   @xmlrpc_view()
-   def say_hello(request):
-       return 'Hello, %s' % request.rpc_args[0]
 
-To set a different XML-RPC method name than the name of the function, pass
-in a ``method`` parameter:
+    config = Configurator()
+    config.include('pyramid_rpc.xmlrpc')
+    config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
 
-.. code-block:: python
-    :linenos:
-    
-    @xmlrpc_view(method='say_hello')
-    def echo(request):
-        return 'Hello, %s' % request.rpc_args[0]
+It is possible to add multiple endpoints as well as pass extra arguments to
+``add_xmlrpc_endpoint`` to handle traversal, which can assist in adding
+security to your RPC API.
 
-Or if the route for the XML-RPC endpoint is not named 'RPC2':
+Exposing XML-RPC Methods
+-------------------------
 
-.. code-block:: python
-    :linenos:
-    
-    @xmlrpc_view(route_name='my_route')
-    def say_hello(request):
-        return 'Hello, %s' % request.rpc_args[0]
+Methods on your API are exposed by attaching views to an :term:`endpoint`.
+Methods may be attached via the
+:func:`~pyramid_rpc.xmlrpc.add_xmlrpc_method` which is a thin wrapper
+around Pyramid's ``add_view`` function.
 
-Next, add the route to expose the XML-RPC endpoint. 
-
-Using imperative code in your application's startup configuration:
+Example:
 
 .. code-block:: python
-   :linenos:
 
-   config.scan()
-   config.add_route('RPC2', '/api/xmlrpc', view='pyramid_rpc.xmlrpc_endpoint')
+    def say_hello(request, name):
+        return 'Hello, ' + name
 
-If you don't wish to use the :class:`~pyramid_rpc.xmlrpc_view`
-decorator, XML-RPC views can be added imperatively::
+    config.add_xmlrpc_method(say_hello, endpoint='api', method='say_hello')
 
-    from mypackage import say_hello
-    config.add_view(say_hello, name='say_hello', route_name='RPC2')
+If you prefer, you can use the :func:`~pyramid_rpc.xmlrpc.xmlrpc_method`
+view decorator to declare your methods closer to your actual code.
+Remember when using this lazy configuration technique, it's always necessary
+to call ``config.scan()`` from within your setup code.
 
-Declarative Configuration
-=========================
+.. code-block:: python
 
-Using ZCML:
+    from pyramid_rpc.xmlrpc import xmlrpc_method
 
-.. code-block:: xml
-   :linenos:
-   
-   <route
-       name="RPC2"
-       pattern="/rpc"
-       view="pyramid_rpc.xmlrpc_endpoint"
-    />
-   
-   <view
-     name="say_hello"
-     view=".views.say_hello"
-     route_name="RPC2"
-     />
+    @xmlrpc_method(endpoint='api')
+    def say_hello(request, name):
+        return 'Hello, ' + name
+
+    config.scan()
+
+To set the RPC method to something other than the name of the view, specify
+the ``method`` parameter:
+
+.. code-block:: python
+
+    from pyramid_rpc.xmlrpc import xmlrpc_method
+
+    @xmlrpc_method(method='say_hello', endpoint='api')
+    def say_hello_view(request, name):
+        return 'Hello, ' + name
+
+    config.scan()
+
+Because methods are a thin layer around Pyramid's views, it is possible to add
+extra view predicates to the method, as well as ``permission`` requirements.
+
+View Mappers
+------------
+
+A view mapper is registered for JSON-RPC methods by default which will
+match the arguments from ``request.rpc_args`` to the parameters of the
+view. Optional arguments are allowed and an error will be returned if too
+many or too few arguments are supplied to the view.
+
+This default view mapper may be overridden by setting ``mapper=None``
+when using :func:`~pyramid_rpc.jsonrpc.jsonrpc_method` or
+:func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`. Of course, another mapper
+may be specified as well.
 
 Call Example
 ============
 
-Then call the function via an XML-RPC client.
+Using Python's ``xmlrpclib``, it's simple to instantiate a ``ServerProxy``
+to call the function via an XML-RPC client.
 
 .. code-block:: python
    :linenos:
@@ -101,20 +135,13 @@ Then call the function via an XML-RPC client.
 API
 ===
 
-Public
-------
-
 .. automodule:: pyramid_rpc.xmlrpc
 
-  .. autoclass:: xmlrpc_view
+  .. autofunction:: includeme
 
-  .. autofunction:: xmlrpc_endpoint
+  .. autofunction:: add_xmlrpc_endpoint
 
-Internal Functions Used
------------------------
+  .. autofunction:: add_xmlrpc_method
 
-.. automodule:: pyramid_rpc.xmlrpc
+  .. autofunction:: xmlrpc_method
 
-  .. autofunction:: xmlrpc_marshal
-
-  .. autofunction:: parse_xmlrpc_request
