@@ -77,8 +77,6 @@ def exception_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
     if isinstance(exc, JsonRpcError):
         fault = exc
-    elif isinstance(exc, HTTPNoContent):
-        return exc
     elif isinstance(exc, HTTPNotFound):
         fault = JsonRpcMethodNotFound()
         log.debug('json-rpc method not found rpc_id:%s "%s"',
@@ -98,10 +96,13 @@ def jsonrpc_renderer(info):
         request = system.get('request')
         if request is not None:
             rpc_id = getattr(request, 'rpc_id', None)
-            if rpc_id is None:
-                raise HTTPNoContent()
-
             response = request.response
+
+            if rpc_id is None:
+                response.status = 204
+                del response.content_type
+                return ''
+
             ct = response.content_type
             if ct == response.default_content_type:
                 response.content_type = 'application/json'
