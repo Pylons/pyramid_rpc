@@ -7,8 +7,9 @@ create RPC services.
 Support and Documentation
 -------------------------
 
-See the `pyramid_rpc website <http://docs.pylonshq.com/pyramid_rpc/dev/>`_ to
-view documentation, report bugs, and obtain support.
+See the `pyramid_rpc website
+<https://docs.pylonsproject.org/projects/pyramid_rpc/dev/>`_ to view
+documentation, report bugs, and obtain support.
 
 License
 -------

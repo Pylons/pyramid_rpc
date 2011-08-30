@@ -27,6 +27,17 @@ except:
     README = ''
     CHANGES = ''
 
+install_requires = [
+    'setuptools',
+    'pyramid>=1.1',
+]
+
+tests_require = install_requires + [
+    'nose',
+    'WebTest',
+    'pyamf',
+]
+
 setup(name='pyramid_rpc',
       version=__version__,
       description='RPC support for the Pyramid web framework',
@@ -40,12 +51,12 @@ setup(name='pyramid_rpc',
       keywords='web wsgi pyramid pylons xml-rpc',
       author="Ben Bangert",
       author_email="ben@groovie.org",
-      url="http://pylonshq.com/",
+      url="https://github.com/Pylons/pyramid_rpc",
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      tests_require = ['setuptools', 'pyramid', 'pyamf', 'nose', 'WebTest'],
-      install_requires=['setuptools','pyramid >= 1.2a1'],
+      tests_require=tests_require,
+      install_requires=install_requires,
       test_suite="pyramid_rpc.tests",
       )
