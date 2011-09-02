@@ -221,31 +221,96 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', [2, 3, 4])
         self.assertEqual(result['error']['code'], -32602)
 
-    def test_method_decorator(self):
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
-        config.scan('pyramid_rpc.tests.fixtures.jsonrpc')
-        app = config.make_wsgi_app()
-        app = TestApp(app)
-        result = self._callFUT(app, 'create', [2, 3])
-        self.assertEqual(result['result'], {'create': 'bob'})
+class DummyAuthenticationPolicy(object):
+    userid = None
+    groups = ()
 
-    def test_method_decorator_with_method_from_view_name(self):
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
-        config.scan('pyramid_rpc.tests.fixtures.jsonrpc_method_default')
-        app = config.make_wsgi_app()
-        app = TestApp(app)
-        result = self._callFUT(app, 'create', [2, 3])
-        self.assertEqual(result['result'], {'create': 'bob'})
+    def authenticated_userid(self, request):
+        return self.userid
 
-    def test_method_decorator_no_endpoint(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        config.add_jsonrpc_endpoint('api', '/api/jsonrpc')
-        self.assertRaises(ConfigurationError, config.scan,
-                          'pyramid_rpc.tests.fixtures.jsonrpc_no_endpoint')
+    def effective_principals(self, request):
+        from pyramid.security import Everyone
+        from pyramid.security import Authenticated
+        principals = [Everyone]
+        if self.userid:
+            principals += [Authenticated]
+            principals += [self.userid]
+            principals += self.groups
+        return principals
+
+class TestJSONRPCFixture(unittest.TestCase):
+    package = 'pyramid_rpc.tests.fixtures.jsonrpc'
+
+    def _callFUT(self, app, method, params, id=5, version='2.0',
+                 path='/api/jsonrpc', content_type='application/json'):
+        body = {}
+        if id is not None:
+            body['id'] = id
+        if version is not None:
+            body['jsonrpc'] = version
+        if method is not None:
+            body['method'] = method
+        if params is not None:
+            body['params'] = params
+        resp = app.post(path, content_type=content_type,
+                        params=json.dumps(body))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        result = json.loads(resp.body)
+        self.assertEqual(result['jsonrpc'], '2.0')
+        self.assertEqual(result['id'], id)
+        return result
+
+    def setUp(self):
+        from pyramid.config import Configurator
+        from pyramid.authorization import ACLAuthorizationPolicy
+        config = Configurator(package=self.package)
+        config.include(self.package)
+        self.auth_policy = DummyAuthenticationPolicy()
+        config.set_authentication_policy(self.auth_policy)
+        config.set_authorization_policy(ACLAuthorizationPolicy())
+        app = config.make_wsgi_app()
+        self.testapp = TestApp(app)
+        self.config = config
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def test_basic(self):
+        result = self._callFUT(self.testapp, 'basic', [])
+        self.assertEqual(result['result'], 'basic')
+
+    def test_exc(self):
+        result = self._callFUT(self.testapp, 'exc', [])
+        self.assertEqual(result['error']['code'], -32603)
+
+    def test_decorated_method(self):
+        result = self._callFUT(self.testapp, 'create', [1, 2])
+        self.assertEqual(result['result'], {'create':'bob'})
+
+    def test_decorated_class_method(self):
+        result = self._callFUT(self.testapp, 'say_hello', ['bob'])
+        self.assertEqual(result['result'], 'hello, bob')
+
+    def test_secure_hello_with_credentials(self):
+        self.auth_policy.userid = 'bob'
+        result = self._callFUT(self.testapp, 'secure_hello', ['bob'],
+                               path='/api/jsonrpc/secure')
+        self.assertEqual(result['result'], 'hello, bob')
+
+    def test_secure_hello_with_no_credentials(self):
+        result = self._callFUT(self.testapp, 'secure_hello', ['bob'],
+                               path='/api/jsonrpc/secure')
+        self.assertEqual(result['result'], 'hello, bob')
+
+    def test_secure_echo_with_credentials(self):
+        self.auth_policy.userid = 'bob'
+        result = self._callFUT(self.testapp, 'secure_echo', ['foo'],
+                               path='/api/jsonrpc/secure')
+        self.assertEqual(result['result'], 'foo')
+
+    def test_secure_echo_with_no_credentials(self):
+        result = self._callFUT(self.testapp, 'secure_echo', ['bob'],
+                               path='/api/jsonrpc/secure')
+        self.assertEqual(result['error']['code'], -32600)
 

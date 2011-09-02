@@ -1,11 +1,11 @@
 import logging
 
+import venusian
 from pyramid.compat import json
 from pyramid.exceptions import ConfigurationError
-from pyramid.httpexceptions import HTTPNoContent
+from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
-from pyramid.view import view_config
 
 from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import ViewMapperArgsInvalid
@@ -80,7 +80,11 @@ def exception_view(exc, request):
     elif isinstance(exc, HTTPNotFound):
         fault = JsonRpcMethodNotFound()
         log.debug('json-rpc method not found rpc_id:%s "%s"',
-                  request.rpc_id, request.rpc_method)
+                  rpc_id, request.rpc_method)
+    elif isinstance(exc, HTTPForbidden):
+        fault = JsonRpcRequestInvalid()
+        log.debug('json-rpc method forbidden rpc_id:%s "%s"',
+                  rpc_id, request.rpc_method)
     elif isinstance(exc, ViewMapperArgsInvalid):
         fault = JsonRpcParamsInvalid()
         log.debug('json-rpc invalid method params')
@@ -213,26 +217,24 @@ class jsonrpc_method(object):
 
     """
     def __init__(self, method=None, **kw):
-        endpoint = kw.pop('endpoint', kw.pop('route_name', None))
-        if endpoint is None:
-            raise ConfigurationError(
-                'Cannot register a JSON-RPC endpoint without specifying the '
-                'name of the endpoint.')
-
-        kw.setdefault('mapper', MapplyViewMapper)
-        kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
-        kw['route_name'] = endpoint
         self.method = method
         self.kw = kw
 
     def __call__(self, wrapped):
-        method = self.method or wrapped.__name__
         kw = self.kw.copy()
-        def jsonrpc_method_predicate(context, request):
-            return getattr(request, 'rpc_method', None) == method
-        predicates = kw.setdefault('custom_predicates', [])
-        predicates.append(jsonrpc_method_predicate)
-        return view_config(**kw)(wrapped)
+        kw['method'] = self.method or wrapped.__name__
+
+        def callback(context, name, ob):
+            config = context.config.with_package(info.module)
+            config.add_jsonrpc_method(view=ob, **kw)
+
+        info = venusian.attach(wrapped, callback, category='pyramid')
+        if info.scope == 'class':
+            # ensure that attr is set if decorating a class method
+            kw.setdefault('attr', wrapped.__name__)
+
+        kw['_info'] = info.codeinfo # fbo action_method
+        return wrapped
 
 
 def includeme(config):
