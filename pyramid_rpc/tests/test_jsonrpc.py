@@ -232,9 +232,10 @@ class DummyAuthenticationPolicy(object):
         from pyramid.security import Everyone
         from pyramid.security import Authenticated
         principals = [Everyone]
-        if self.userid:
+        userid = self.authenticated_userid(request)
+        if userid:
             principals += [Authenticated]
-            principals += [self.userid]
+            principals += [userid]
             principals += self.groups
         return principals
 
