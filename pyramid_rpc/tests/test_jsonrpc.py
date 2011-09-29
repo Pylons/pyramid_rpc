@@ -135,6 +135,32 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', None)
         self.assertEqual(result['result'], 'no params')
 
+    def test_it_with_named_params(self):
+        def view(request, three, four, five):
+            self.assertEqual('%s%s%s'%(three,four,five), '345')
+            return 'named params'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', {'four':4, 'five':5, 'three':3})
+        self.assertEqual(result['result'], 'named params')
+
+    def test_it_with_named_params_and_default_values(self):
+        def view(request, three, four = 4 , five = 'foo' ):
+            self.assertEqual('%s%s%s'%(three,four,five), '345')
+            return 'named params'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', { 'five':5, 'three':3})
+        self.assertEqual(result['result'], 'named params')
+
     def test_it_with_invalid_method(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')

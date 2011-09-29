@@ -127,7 +127,7 @@ def setup_jsonrpc(request):
         raise JsonRpcParseError
 
     request.rpc_id = body.get('id')
-    request.rpc_args = tuple(body.get('params', []))
+    request.rpc_args = body.get('params', ())
     request.rpc_method = body.get('method')
     request.rpc_version = body.get('jsonrpc')
 

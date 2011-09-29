@@ -51,6 +51,11 @@ class MapplyViewMapper(object):
                 keywords = dict(request.params.items())
                 if request.matchdict:
                     keywords.update(request.matchdict)
+                if isinstance(params, dict):
+                    keywords.update(params)
+                    params = tuple()
+                else: 
+                    params = tuple(params)
                 if attr is None:
                     inst = view(request)
                     response = self.mapply(inst, params, keywords)
@@ -63,10 +68,15 @@ class MapplyViewMapper(object):
             mapped_view = _class_view
         else:
             def _nonclass_view(context, request):
-                params = (request,) + getattr(request, 'rpc_args', ())
+                params = getattr(request, 'rpc_args', ()) 
                 keywords = dict(request.params.items())
                 if request.matchdict:
                     keywords.update(request.matchdict)
+                if isinstance(params, dict):
+                    keywords.update(params)
+                    params = (request,)
+                else: 
+                    params = (request,) + tuple(params)
                 if attr is None:
                     response = self.mapply(view, params, keywords)
                 else:
