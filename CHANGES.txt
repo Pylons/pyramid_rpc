@@ -1,3 +1,13 @@
+(unreleased)
+============
+
+Features
+========
+
+- JSON-RPC
+
+  + Added support for named parameters.
+
 0.3 (2011-08-30)
 ================
 
