@@ -135,6 +135,32 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', None)
         self.assertEqual(result['result'], 'no params')
 
+    def test_it_with_named_params(self):
+        def view(request, three, four, five):
+            self.assertEqual('%s%s%s'%(three,four,five), '345')
+            return 'named params'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', {'four':4, 'five':5, 'three':3})
+        self.assertEqual(result['result'], 'named params')
+
+    def test_it_with_named_params_and_default_values(self):
+        def view(request, three, four = 4 , five = 'foo' ):
+            self.assertEqual('%s%s%s'%(three,four,five), '345')
+            return 'named params'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', { 'five':5, 'three':3})
+        self.assertEqual(result['result'], 'named params')
+
     def test_it_with_invalid_method(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
@@ -185,6 +211,23 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = config.make_wsgi_app()
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3])
+        self.assertEqual(result['result'], [2, 3])
+
+    def test_it_with_named_args_and_cls_view(self):
+        class view(object):
+            def __init__(self, request):
+                self.request = request
+
+            def foo(self, a, b):
+                return [a, b]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy',
+                                  attr='foo')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', {'b':3, 'a':2})
         self.assertEqual(result['result'], [2, 3])
 
     def test_it_with_default_args(self):
