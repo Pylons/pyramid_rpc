@@ -41,7 +41,7 @@ pickle:
 
 web: pickle
 
-htmlhelp:
+htmlhelp: _themes
 	mkdir -p _build/htmlhelp _build/doctrees
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) _build/htmlhelp
 	@echo
@@ -70,4 +70,4 @@ linkcheck:
 	      "or in _build/linkcheck/output.txt."
 
 _themes:
-	git clone git://github.com/Pylons/pylons_sphinx_theme.git _themes
+	cd ..; git submodule update --init; cd docs

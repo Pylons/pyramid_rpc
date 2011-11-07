@@ -9,9 +9,9 @@ dist/
 .tox
 nosetests.xml
 pyramid_rpc/coverage.xml
-
 include/
 lib/
 man/
 .Python
 build/
+docs/_build/
