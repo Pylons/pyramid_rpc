@@ -11,14 +11,15 @@ from pyamf.remoting import gateway
 from pyramid import httpexceptions
 from pyramid.response import Response
 
+
 class PyramidGateway(gateway.BaseGateway):
     """Pyramid View Remoting Gateway
-    
+
     :param expose_request:
         Defaults to True. Whether or not the service function should be
         called with the Pyramid request object.
     :param debug: Boolean toggling debug mode.
-    
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -40,7 +41,7 @@ class PyramidGateway(gateway.BaseGateway):
         """Processes and dispatches the request"""
         if request.method != 'POST':
             return httpexceptions.HTTPMethodNotAllowed(['POST'])
-        
+
         body = request.body
         stream = None
         timezone_offset = self._get_timezone_offset()
@@ -48,7 +49,7 @@ class PyramidGateway(gateway.BaseGateway):
         # Decode the request
         try:
             amf_request = remoting.decode(body, strict=self.strict,
-                                          logger=self.logger, 
+                                          logger=self.logger,
                                           timezone_offset=timezone_offset)
         except (pyamf.DecodeError, IOError):
             if self.logger:
@@ -90,7 +91,7 @@ class PyramidGateway(gateway.BaseGateway):
 
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
-            
+
             return httpexceptions.HTTPInternalServerError(detail=response)
 
         if self.logger:
@@ -109,11 +110,11 @@ class PyramidGateway(gateway.BaseGateway):
 
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
-            
+
             return httpexceptions.HTTPInternalServerError(detail=response)
 
         buf = stream.getvalue()
-        
+
         http_response = Response(content_type=remoting.CONTENT_TYPE)
         http_response.headers['Server'] = gateway.SERVER_NAME
         http_response.write(buf)

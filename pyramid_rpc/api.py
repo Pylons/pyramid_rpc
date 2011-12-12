@@ -19,14 +19,14 @@ from zope.interface import providedBy
 def view_lookup(request, method):
     """Lookup and return a view based on the request, context, and
     method name
-    
+
     This function will use the current routes name to locate the
     view using Pyramid's view lookup machinery.
 
     """
     registry = request.registry
     adapters = registry.adapters
-    
+
     # Hairy view lookup stuff below, woo!
     request_iface = registry.queryUtility(
         IRouteRequest, name=request.matched_route.name,
@@ -38,8 +38,9 @@ def view_lookup(request, method):
     return view_callable
 
 
-class MapplyViewMapper(object): 
+class MapplyViewMapper(object):
     implements(IViewMapperFactory)
+
     def __init__(self, **kw):
         self.attr = kw.get('attr')
 
@@ -54,7 +55,7 @@ class MapplyViewMapper(object):
                 if isinstance(params, dict):
                     keywords.update(params)
                     params = tuple()
-                else: 
+                else:
                     params = tuple(params)
                 if attr is None:
                     inst = view(request)
@@ -68,14 +69,14 @@ class MapplyViewMapper(object):
             mapped_view = _class_view
         else:
             def _nonclass_view(context, request):
-                params = getattr(request, 'rpc_args', ()) 
+                params = getattr(request, 'rpc_args', ())
                 keywords = dict(request.params.items())
                 if request.matchdict:
                     keywords.update(request.matchdict)
                 if isinstance(params, dict):
                     keywords.update(params)
                     params = (request,)
-                else: 
+                else:
                     params = (request,) + tuple(params)
                 if attr is None:
                     response = self.mapply(view, params, keywords)
@@ -129,11 +130,12 @@ class MapplyViewMapper(object):
                     raise ViewMapperArgsInvalid(
                         'argument %s was omitted' % name)
                 else:
-                    v = defaults[index-nrequired]
+                    v = defaults[index - nrequired]
             args.append(v)
 
         args = tuple(args)
         return ob(*args)
+
 
 class ViewMapperArgsInvalid(TypeError):
     pass

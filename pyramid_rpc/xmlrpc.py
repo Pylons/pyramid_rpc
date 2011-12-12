@@ -71,17 +71,16 @@ def parse_xmlrpc_request(request):
 class xmlrpc_view(object):
     """ This decorator may be used with pyramid view callables to enable them
     to repsond to XML-RPC method calls.
-    
+
     If ``method`` is not supplied, then the callable name will be used for
     the method name. If ``route_name`` is not supplied, it is assumed that
     the appropriate route was added to the application's config (named
     'RPC2').
-    
+
     """
     def __init__(self, method=None, route_name='RPC2'):
         self.method = method
         self.route_name = route_name
-
 
     def __call__(self, wrapped, view_config=view_config):
         # view_config passable for unit testing purposes only
@@ -90,7 +89,7 @@ class xmlrpc_view(object):
             # pyramid 1.1
             from pyramid.renderers import null_renderer
             renderer = null_renderer
-        except ImportError: # pragma: no cover
+        except ImportError:  # pragma: no cover
             # pyramid 1.0
             renderer = None
         return view_config(route_name=self.route_name, name=method_name,
@@ -100,30 +99,30 @@ class xmlrpc_view(object):
 def xmlrpc_endpoint(request):
     """A base view to be used with add_route to setup an XML-RPC dispatch
     endpoint
-    
+
     Use this view with ``add_route`` to setup an XML-RPC endpoint, for
     example::
-        
+
         config.add_route('RPC2', '/apis/RPC2', view=xmlrpc_endpoint)
-    
+
     XML-RPC methods should then be registered with ``add_view`` using the
     route_name of the endpoint, the name as the xmlrpc method name. Or for
     brevity, the :class:`~pyramid_rpc.xmlrpc.xmlrpc_view` decorator can be
     used.
-    
+
     For example, to register an xmlrpc method 'list_users'::
-    
+
         @xmlrpc_view()
         def list_users(request):
             args = request.rpc_args
             return {'users': [...]}
-    
+
     Existing views that return a dict can be used with xmlrpc_view.
-    
+
     """
     params, method = parse_xmlrpc_request(request)
-    request.rpc_args = request.xmlrpc_args = params # b/w compat xmlrpc_args
-    
+    request.rpc_args = request.xmlrpc_args = params  # b/w compat xmlrpc_args
+
     view_callable = view_lookup(request, method=method)
     if not view_callable:
         return HTTPNotFound("No method of that name was found.")
@@ -280,6 +279,7 @@ class xmlrpc_method(object):
     def __call__(self, wrapped):
         method = self.method or wrapped.__name__
         kw = self.kw.copy()
+
         def xmlrpc_method_predicate(context, request):
             return getattr(request, 'rpc_method', None) == method
         predicates = kw.setdefault('custom_predicates', [])
@@ -307,4 +307,3 @@ def includeme(config):
     config.add_directive('add_xmlrpc_method', add_xmlrpc_method)
     config.add_renderer('pyramid_rpc:xmlrpc', xmlrpc_renderer)
     config.add_view(exception_view, context=xmlrpclib.Fault)
-

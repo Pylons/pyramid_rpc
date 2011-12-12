@@ -62,9 +62,9 @@ def jsonrpc_error_response(error, id=None):
     and return the response."""
 
     body = json.dumps({
-        'jsonrpc' : '2.0',
-        'id' : id,
-        'error' : error.as_dict(),
+        'jsonrpc': '2.0',
+        'id': id,
+        'error': error.as_dict(),
     })
 
     response = Response(body)
@@ -112,9 +112,9 @@ def jsonrpc_renderer(info):
                 response.content_type = 'application/json'
 
             out = {
-                'jsonrpc' : '2.0',
-                'id' : rpc_id,
-                'result' : value,
+                'jsonrpc': '2.0',
+                'id': rpc_id,
+                'result': value,
             }
             return json.dumps(out)
     return _render
@@ -233,7 +233,7 @@ class jsonrpc_method(object):
             # ensure that attr is set if decorating a class method
             kw.setdefault('attr', wrapped.__name__)
 
-        kw['_info'] = info.codeinfo # fbo action_method
+        kw['_info'] = info.codeinfo  # fbo action_method
         return wrapped
 
 
@@ -257,4 +257,3 @@ def includeme(config):
     config.add_directive('add_jsonrpc_method', add_jsonrpc_method)
     config.add_renderer('pyramid_rpc:jsonrpc', jsonrpc_renderer)
     config.add_view(exception_view, context=JsonRpcError)
-
