@@ -211,31 +211,3 @@ class TestXMLRPCIntegration(unittest.TestCase):
         else: # pragma: no cover
             raise AssertionError
 
-    def test_method_decorator(self):
-        config = self.config
-        config.include('pyramid_rpc.xmlrpc')
-        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
-        config.scan('pyramid_rpc.tests.fixtures.xmlrpc')
-        app = config.make_wsgi_app()
-        app = TestApp(app)
-        resp = self._callFUT(app, 'create', (2, 3))
-        self.assertEqual(resp, {'create': 'bob'})
-
-    def test_method_decorator_with_method_from_view_name(self):
-        config = self.config
-        config.include('pyramid_rpc.xmlrpc')
-        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
-        config.scan('pyramid_rpc.tests.fixtures.xmlrpc_method_default')
-        app = config.make_wsgi_app()
-        app = TestApp(app)
-        resp = self._callFUT(app, 'create', (2, 3))
-        self.assertEqual(resp, {'create': 'bob'})
-
-    def test_method_decorator_with_no_endpoint(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.xmlrpc')
-        config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
-        self.assertRaises(ConfigurationError, config.scan,
-                          'pyramid_rpc.tests.fixtures.xmlrpc_no_endpoint')
-
