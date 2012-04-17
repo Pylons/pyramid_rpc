@@ -1,8 +1,21 @@
+0.4 (next release)
+==================
+
+Features
+--------
+
+Backwards Incompatibilities
+---------------------------
+
+- XML-RPC
+
+  + Removed deprecated xmlrpc_view API.
+
 0.3.1 (2011-12-12)
 ==================
 
 Features
-========
+--------
 
 - JSON-RPC
 
@@ -16,7 +29,7 @@ Features
 
 - XML-RPC
 
-  + Deprecated the xmlrpc_endpoint API in favor of a new API that
+  + Deprecated the xmlrpc_view API in favor of a new API that
     supports more features expected from routes and views including
     the ability to set permissions on RPC methods, perform traversal,
     and a default view mapper.
