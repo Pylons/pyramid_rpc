@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-__version__ = '0.3.1'
+__version__ = '0.4'
 
 import os
 
@@ -28,7 +28,6 @@ except:
     CHANGES = ''
 
 install_requires = [
-    'setuptools',
     'pyramid>=1.1',
 ]
 
@@ -36,6 +35,10 @@ tests_require = install_requires + [
     'nose',
     'WebTest',
     'pyamf',
+]
+
+testing_extras = tests_require + [
+    'coverage',
 ]
 
 setup(name='pyramid_rpc',
@@ -62,5 +65,8 @@ setup(name='pyramid_rpc',
       zip_safe=False,
       tests_require=tests_require,
       install_requires=install_requires,
+      extras_require = {
+          'testing':testing_extras,
+          },
       test_suite="pyramid_rpc.tests",
       )
