@@ -8,6 +8,27 @@ JSON-RPC
 `JSON-RPC 2.0 Specification
 <http://groups.google.com/group/json-rpc/web/json-rpc-2-0>`_ .
 
+.. code-block:: python
+
+    from pyramid.config import Configurator
+    from pyramic_rpc import jsonrpc_method
+
+    @jsonrpc_method(endpoint='api')
+    def say_hello(request, name):
+        return 'hello, %s!' % name
+
+    def main(global_conf, **settings):
+        config = Configurator(settings=settings)
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('api', '/api')
+        config.scan(__name__)
+        return config.make_wsgi_app()
+
+    if __name__ == '__main__':
+        from paste.httpserver import serve
+        app = main({})
+        serve(app, 'localhost', 8080)
+
 Setup
 =====
 
