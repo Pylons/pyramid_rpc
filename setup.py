@@ -41,6 +41,11 @@ testing_extras = tests_require + [
     'coverage',
 ]
 
+docs_require = [
+    'Sphinx',
+    'docutils',
+]
+
 setup(name='pyramid_rpc',
       version=__version__,
       description='RPC support for the Pyramid web framework',
@@ -66,6 +71,7 @@ setup(name='pyramid_rpc',
       install_requires=install_requires,
       extras_require = {
           'testing':testing_extras,
+          'docs':docs_require,
           },
       test_suite="pyramid_rpc.tests",
       )
