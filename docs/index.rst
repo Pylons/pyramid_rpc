@@ -27,8 +27,8 @@ distribution. To install the package, use ``easy_install``::
 
   easy_install pyramid_rpc
 
-Or obtain the packge via `http://github.com/Pylons/pyramid_rpc
-<http://github.com/Pylons/pyramid_rpc>`_ and use ``python setup.py install``.
+Or obtain the packge via `https://github.com/Pylons/pyramid_rpc
+<https://github.com/Pylons/pyramid_rpc>`_ and use ``python setup.py install``.
 
 RPC Documentation
 =================
@@ -37,8 +37,8 @@ RPC Documentation
     :maxdepth: 2
     
     xmlrpc
-    amf
     jsonrpc
+    amf
     developer
 
 .. _glossary:
