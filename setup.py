@@ -15,8 +15,12 @@
 __version__ = '0.4'
 
 import os
+import sys
 
 from setuptools import setup, find_packages
+
+py_version = sys.version_info[:2]
+PY3 = py_version[0] == 3
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -32,12 +36,16 @@ install_requires = [
 ]
 
 tests_require = install_requires + [
-    'nose',
     'WebTest',
-    'pyamf',
 ]
 
+if not PY3:
+    tests_require.extend([
+        'pyamf',
+    ])
+
 testing_extras = tests_require + [
+    'nose',
     'coverage',
 ]
 
@@ -72,6 +80,7 @@ setup(name='pyramid_rpc',
       extras_require = {
           'testing':testing_extras,
           'docs':docs_require,
+          'amf':['pyamf'],
           },
       test_suite="pyramid_rpc.tests",
       )

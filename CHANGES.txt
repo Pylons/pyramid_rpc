@@ -4,6 +4,11 @@
 Features
 --------
 
+- Python 3 compatibility.
+
+  + PyAMF is not Python 3 compatible, only JSON-RPC and XML-RPC are
+    supported for now.
+
 Backwards Incompatibilities
 ---------------------------
 
