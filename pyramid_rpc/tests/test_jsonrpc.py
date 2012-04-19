@@ -1,7 +1,7 @@
+import json
 import unittest
 
 from pyramid import testing
-from pyramid.compat import json
 
 from webtest import TestApp
 

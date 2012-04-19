@@ -1,7 +1,6 @@
+import json
 import unittest
 import xmlrpclib
-
-from pyramid.compat import json
 
 from webtest import TestApp
 
