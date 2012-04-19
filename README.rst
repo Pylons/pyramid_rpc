@@ -8,7 +8,7 @@ Support and Documentation
 -------------------------
 
 See the `pyramid_rpc website
-<https://docs.pylonsproject.org/projects/pyramid_rpc/dev/>`_ to view
+<http://docs.pylonsproject.org/projects/pyramid_rpc/en/latest/>`_ to view
 documentation, report bugs, and obtain support.
 
 License
