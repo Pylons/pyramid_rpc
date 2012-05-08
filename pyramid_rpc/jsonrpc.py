@@ -6,6 +6,7 @@ from pyramid.exceptions import ConfigurationError
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
+from pyramid.security import NO_PERMISSION_REQUIRED
 
 from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import ViewMapperArgsInvalid
@@ -160,7 +161,8 @@ def add_jsonrpc_endpoint(self, name, *args, **kw):
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(jsonrpc_endpoint_predicate)
     self.add_route(name, *args, **kw)
-    self.add_view(exception_view, route_name=name, context=Exception)
+    self.add_view(exception_view, route_name=name, context=Exception,
+                  permission=NO_PERMISSION_REQUIRED)
 
 
 def add_jsonrpc_method(self, view, **kw):
@@ -256,4 +258,5 @@ def includeme(config):
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)
     config.add_directive('add_jsonrpc_method', add_jsonrpc_method)
     config.add_renderer('pyramid_rpc:jsonrpc', jsonrpc_renderer)
-    config.add_view(exception_view, context=JsonRpcError)
+    config.add_view(exception_view, context=JsonRpcError,
+                    permission=NO_PERMISSION_REQUIRED)
