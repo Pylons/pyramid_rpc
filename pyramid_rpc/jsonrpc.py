@@ -85,6 +85,8 @@ def exception_view(exc, request):
     rpc_id = getattr(request, 'rpc_id', None)
     if isinstance(exc, JsonRpcError):
         fault = exc
+        log.debug('json-rpc error rpc_id:%s "%s"',
+                  rpc_id, exc.message)
     elif isinstance(exc, HTTPNotFound):
         fault = JsonRpcMethodNotFound()
         log.debug('json-rpc method not found rpc_id:%s "%s"',
@@ -140,10 +142,17 @@ def setup_jsonrpc(request):
     request.rpc_version = body.get('jsonrpc')
 
     if request.rpc_version != '2.0':
+        log.debug('id:%s invalid rpc version %s',
+                  request.rpc_id, request.rpc_version)
         raise JsonRpcRequestInvalid
 
     if request.rpc_method is None:
+        log.debug('id:%s invalid rpc method %s',
+                  request.rpc_id, request.rpc_method)
         raise JsonRpcRequestInvalid
+
+    log.debug('handling id:%s method:%s',
+              request.rpc_id, request.rpc_method)
 
 
 def add_jsonrpc_endpoint(self, name, *args, **kw):
