@@ -16,18 +16,25 @@ log = logging.getLogger(__name__)
 
 
 class JsonRpcError(Exception):
-    code = None
-    message = None
+    code = -32603 # sane default
+    message = 'internal error' # sane default
+    data = None
 
-    def __init__(self, data=None):
-        self.data = data
+    def __init__(self, code=None, message=None, data=None):
+        if code is not None:
+            self.code = code
+        if message is not None:
+            self.message = message
+        if data is not None:
+            self.data = data
 
     def as_dict(self):
         """Return a dictionary representation of this object for
         serialization in a JSON-RPC response."""
         error = dict(code=self.code,
                      message=self.message)
-
+        if self.data is not None:
+            error['data'] = self.data
         return error
 
 

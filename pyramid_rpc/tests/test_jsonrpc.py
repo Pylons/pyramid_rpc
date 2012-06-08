@@ -196,6 +196,36 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['error']['code'], -32603)
 
+    def test_it_with_rpc_error(self):
+        from pyramid_rpc.jsonrpc import JsonRpcError
+        def view(request):
+            raise JsonRpcError(code=500, message='dummy')
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['error']['code'], 500)
+        self.assertEqual(result['error']['message'], 'dummy')
+        self.assertFalse('data' in result['error'])
+
+    def test_it_with_rpc_error_with_data(self):
+        from pyramid_rpc.jsonrpc import JsonRpcError
+        def view(request):
+            raise JsonRpcError(code=500, message='dummy', data='foo')
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['error']['code'], 500)
+        self.assertEqual(result['error']['message'], 'dummy')
+        self.assertEqual(result['error']['data'], 'foo')
+
     def test_it_with_cls_view(self):
         class view(object):
             def __init__(self, request):
