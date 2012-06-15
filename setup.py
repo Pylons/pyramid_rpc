@@ -22,6 +22,13 @@ from setuptools import setup, find_packages
 py_version = sys.version_info[:2]
 PY3 = py_version[0] == 3
 
+try:
+    import __pypy__
+    PYPY = True
+except:
+    __pypy__ = None
+    PYPY = False
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 try:
@@ -39,7 +46,7 @@ tests_require = install_requires + [
     'WebTest',
 ]
 
-if not PY3:
+if not PY3 and not PYPY:
     tests_require.extend([
         'pyamf',
     ])

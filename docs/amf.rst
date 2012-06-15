@@ -8,11 +8,24 @@ Action Message Format (AMF) is a binary format used for serializing
 ActionScript objects. It's primarily used for communication between Flash and
 a server, though it can be used from clients in other languages as well.
 
-AMF support is provided by utilizing the `PyAMF package <http://pyamf.org/index.html>`_.
+AMF support is provided by utilizing the
+`PyAMF package <http://pyamf.org/index.html>`_.
 
 :mod:`pyramid_rpc` exposes AMF as a Remoting gateway in a similar manner to
 PyAMF's Django gateway support. This allows a remoting gateway to be exposed
 as a normal Pyramid view.
+
+Installing PyAMF
+================
+
+PyAMF, by default, installs C extensions. This doesn't work under PyPy or
+Jython and thus the package must be manually installed. This can be done
+by grabbing the `source <http://pypi.python.org/pypi/PyAMF/>`__ from PyPI
+and installing it via::
+
+    /path/to/virtualenv/bin/python setup.py install --disable-ext
+
+As shown in the PyAMF installation guide http://pypi.python.org/pypi/PyAMF/.
 
 Exposing AMF Services
 =====================
