@@ -40,6 +40,7 @@ pkg_info = pkginfo.Develop(os.path.join(os.path.dirname(__file__),'..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.viewcode',
     ]
 
 # Looks for bfg's objects
@@ -91,7 +92,7 @@ today_fmt = '%B %d, %Y'
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
-#add_module_names = True
+add_module_names = False
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
