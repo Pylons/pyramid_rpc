@@ -16,7 +16,7 @@ Currently available RPC Implementations:
 File an issue on the `GitHub Issue Tracker for pyramid_rpc
 <https://github.com/Pylons/pyramid_rpc/issues>`_ to request additional RPC's
 to support. Patches and contributions welcome, please read the `Pylons Project
-Community section first. <http://docs.pylonsproject.org/#contributing>`_.
+Community section first <http://docs.pylonsproject.org/#contributing>`_.
 
 
 Installation
