@@ -12,8 +12,6 @@
 #
 ##############################################################################
 
-__version__ = '0.4dev'
-
 import os
 import sys
 
@@ -52,24 +50,24 @@ docs_require = [
 ]
 
 setup(name='pyramid_rpc',
-      version=__version__,
+      version='0.4dev',
       description='RPC support for the Pyramid web framework',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
-        "Intended Audience :: Developers",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Framework :: Pyramid",
-        ],
+          "Intended Audience :: Developers",
+          "Programming Language :: Python",
+          "Programming Language :: Python :: 2",
+          "Programming Language :: Python :: 2.6",
+          "Programming Language :: Python :: 2.7",
+          "Programming Language :: Python :: Implementation :: CPython",
+          "Framework :: Pyramid",
+      ],
       keywords='web wsgi pyramid pylons xml-rpc json-rpc',
       author="Ben Bangert",
       author_email="ben@groovie.org",
       maintainer='Michael Merickel',
       maintainer_email='michael@merickel.org',
-      url="https://github.com/Pylons/pyramid_rpc",
+      url='http://docs.pylonsproject.org/projects/pyramid_rpc/en/latest/',
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
       packages=find_packages(),
       include_package_data=True,
