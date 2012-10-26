@@ -70,4 +70,4 @@ linkcheck:
 	      "or in _build/linkcheck/output.txt."
 
 _themes:
-	cd ..; git submodule update --init; cd docs
+	cd ..; git submodule update --init --recursive; cd docs

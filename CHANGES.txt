@@ -9,12 +9,27 @@ Features
   + PyAMF is not Python 3 compatible, only JSON-RPC and XML-RPC are
     supported for now.
 
+- JSON-RPC
+
+  + The ``data`` attribute of :class:`pyramid_rpc.jsonrpc.JsonRpcError` is
+    now encoded into the error response.
+
 Backwards Incompatibilities
 ---------------------------
+
+- JSON-RPC
+
+  + The default exception views are now registered with
+    :data:`pyramid.security.NO_PERMISSION_REQUIRED` to ensure they are
+    always invoked.
 
 - XML-RPC
 
   + Removed deprecated xmlrpc_view API.
+
+  + The default exception views are now registered with
+    :data:`pyramid.security.NO_PERMISSION_REQUIRED` to ensure they are
+    always invoked.
 
 0.3.1 (2011-12-12)
 ==================

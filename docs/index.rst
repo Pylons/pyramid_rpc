@@ -27,35 +27,20 @@ distribution. To install the package, use ``easy_install``::
 
   easy_install pyramid_rpc
 
-Or obtain the packge via `https://github.com/Pylons/pyramid_rpc
-<https://github.com/Pylons/pyramid_rpc>`_ and use ``python setup.py install``.
+Or obtain the packge via https://github.com/Pylons/pyramid_rpc
+and use ``python setup.py install``.
 
 RPC Documentation
 =================
 
 .. toctree::
     :maxdepth: 2
-    
+
     xmlrpc
     jsonrpc
     amf
     developer
-
-.. _glossary:
-
-Terminology
------------
-
-.. glossary::
-    :sorted:
-
-    Endpoint
-        The specific ``route`` or URL designated for handling the RPC.
-
-    RPC
-        A Remote Procedure Call. See `Wikipedia entry on Remote procedure calls 
-        <http://en.wikipedia.org/wiki/Remote_procedure_call>`_
-
+    changes
 
 Indices and tables
 ------------------
@@ -63,3 +48,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+* :ref:`glossary`
+
+.. toctree::
+   :hidden:
+
+   glossary

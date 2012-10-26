@@ -28,8 +28,7 @@ try:
     README = open(os.path.join(here, 'README.rst')).read()
     CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 except:
-    README = ''
-    CHANGES = ''
+    README = CHANGES = ''
 
 install_requires = [
     'pyramid>=1.1',
@@ -46,12 +45,10 @@ if not PY3:
 
 testing_extras = tests_require + [
     'nose',
-    'coverage',
 ]
 
 docs_require = [
     'Sphinx',
-    'docutils',
 ]
 
 setup(name='pyramid_rpc',
@@ -67,7 +64,7 @@ setup(name='pyramid_rpc',
         "Programming Language :: Python :: Implementation :: CPython",
         "Framework :: Pyramid",
         ],
-      keywords='web wsgi pyramid pylons xml-rpc',
+      keywords='web wsgi pyramid pylons xml-rpc json-rpc',
       author="Ben Bangert",
       author_email="ben@groovie.org",
       maintainer='Michael Merickel',

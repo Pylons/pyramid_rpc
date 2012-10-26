@@ -152,9 +152,7 @@ API
   .. autofunction:: jsonrpc_method
 
 Exceptions
-++++++++++
-
-.. automodule:: pyramid_rpc.jsonrpc
+----------
 
   .. autoclass:: JsonRpcError
 
