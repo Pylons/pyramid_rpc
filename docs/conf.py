@@ -17,7 +17,8 @@ import sys, os, datetime
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
-sys.path.append(os.path.abspath('..'))
+parent = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(os.path.abspath(parent))
 
 # General configuration
 # ---------------------
@@ -56,7 +57,7 @@ copyright = '%s, Ben Bangert <ben@groovie.org>' % datetime.datetime.now().year
 # The short X.Y version.
 version = '0.4'
 # The full version, including alpha/beta/rc tags.
-release = '0.4'
+release = version
 
 # There are two options for replacing |today|: either, you set today to
 # some non-false value, then it is used:
