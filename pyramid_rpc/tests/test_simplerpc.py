@@ -102,7 +102,7 @@ class TestJSONRPC(SimpleRPCFixture, unittest.TestCase):
         resp = super(TestJSONRPC, self).callFUT(path, method, json.dumps(body))
         self.assertEqual(resp.status_int, 200)
         self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
+        result = resp.json
         self.assertEqual(result['jsonrpc'], '2.0')
         self.assertEqual(result['id'], 5)
         if 'error' in result:

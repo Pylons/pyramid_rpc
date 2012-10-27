@@ -29,7 +29,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         if id is not None:
             self.assertEqual(resp.status_int, 200)
             self.assertEqual(resp.content_type, 'application/json')
-            result = json.loads(resp.body)
+            result = resp.json
             self.assertEqual(result['jsonrpc'], '2.0')
             self.assertEqual(result['id'], id)
         else:
@@ -120,7 +120,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = config.make_wsgi_app()
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3], id=None)
-        self.assertEqual(result, '')
+        self.assertEqual(result, b'')
 
     def test_it_with_no_params(self):
         def view(request):
@@ -180,7 +180,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
                         params='{')
         self.assertEqual(resp.status_int, 200)
         self.assertEqual(resp.content_type, 'application/json')
-        result = json.loads(resp.body)
+        result = resp.json
         self.assertEqual(result['jsonrpc'], '2.0')
         self.assertEqual(result['error']['code'], -32700)
 

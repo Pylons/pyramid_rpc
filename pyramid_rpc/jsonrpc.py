@@ -3,8 +3,12 @@ import logging
 
 import venusian
 from pyramid.exceptions import ConfigurationError
-from pyramid.httpexceptions import HTTPForbidden
-from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import (
+    HTTPForbidden,
+    HTTPNoContent,
+    HTTPNotFound,
+)
+from pyramid.renderers import null_renderer
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
@@ -73,11 +77,10 @@ def jsonrpc_error_response(error, id=None):
         'jsonrpc': '2.0',
         'id': id,
         'error': error.as_dict(),
-    })
+    }).encode('utf-8')
 
     response = Response(body)
     response.content_type = 'application/json'
-    response.content_length = len(body)
     return response
 
 
@@ -105,29 +108,24 @@ def exception_view(exc, request):
     return jsonrpc_error_response(fault, rpc_id)
 
 
-def jsonrpc_renderer(info):
-    def _render(value, system):
-        request = system.get('request')
-        if request is not None:
-            rpc_id = getattr(request, 'rpc_id', None)
-            response = request.response
+def make_response(request, result):
+    rpc_id = getattr(request, 'rpc_id', None)
+    response = request.response
 
-            if rpc_id is None:
-                response.status = 204
-                del response.content_type
-                return ''
+    if rpc_id is None:
+        return HTTPNoContent()
 
-            ct = response.content_type
-            if ct == response.default_content_type:
-                response.content_type = 'application/json'
+    ct = response.content_type
+    if ct == response.default_content_type:
+        response.content_type = 'application/json'
 
-            out = {
-                'jsonrpc': '2.0',
-                'id': rpc_id,
-                'result': value,
-            }
-            return json.dumps(out)
-    return _render
+    out = {
+        'jsonrpc': '2.0',
+        'id': rpc_id,
+        'result': result,
+    }
+    response.body = json.dumps(out).encode('utf-8')
+    return response
 
 
 def setup_jsonrpc(request):
@@ -217,8 +215,15 @@ def add_jsonrpc_method(self, view, **kw):
         return getattr(request, 'rpc_method', None) == method
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(jsonrpc_method_predicate)
+    decorator = kw.get('decorator', lambda v: v)
+    def renderer(view):
+        def wrapper(context, request):
+            result = decorator(view)(context, request)
+            return make_response(request, result)
+        return wrapper
+    kw['decorator'] = renderer
+    kw['renderer'] = null_renderer
     kw.setdefault('mapper', MapplyViewMapper)
-    kw.setdefault('renderer', 'pyramid_rpc:jsonrpc')
     self.add_view(view, route_name=endpoint, **kw)
 
 
@@ -273,6 +278,5 @@ def includeme(config):
     """
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)
     config.add_directive('add_jsonrpc_method', add_jsonrpc_method)
-    config.add_renderer('pyramid_rpc:jsonrpc', jsonrpc_renderer)
     config.add_view(exception_view, context=JsonRpcError,
                     permission=NO_PERMISSION_REQUIRED)
