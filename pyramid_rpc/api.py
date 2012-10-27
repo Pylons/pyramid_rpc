@@ -12,7 +12,7 @@ from zope.interface import implementer
 
 from pyramid_rpc.compat import PY3
 
-if PY3:
+if PY3: # pragma: no cover
     def _inspect_ob(f):
         im = False
 
