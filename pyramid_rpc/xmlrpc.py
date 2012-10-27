@@ -1,5 +1,4 @@
 import logging
-import xmlrpclib
 
 import venusian
 from pyramid.exceptions import ConfigurationError
@@ -9,6 +8,7 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 
 from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import ViewMapperArgsInvalid
+from pyramid_rpc.compat import xmlrpclib
 
 
 log = logging.getLogger(__name__)

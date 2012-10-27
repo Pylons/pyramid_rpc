@@ -1,10 +1,11 @@
 import sys
 import unittest
-import xmlrpclib
 
 from pyramid import testing
 
 from webtest import TestApp
+
+from pyramid_rpc.compat import xmlrpclib
 
 class TestXMLRPCIntegration(unittest.TestCase):
 

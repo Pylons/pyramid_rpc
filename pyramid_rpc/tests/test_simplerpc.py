@@ -1,8 +1,9 @@
 import json
 import unittest
-import xmlrpclib
 
 from webtest import TestApp
+
+from pyramid_rpc.compat import xmlrpclib
 
 class DummyAuthenticationPolicy(object):
     userid = None
