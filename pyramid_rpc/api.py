@@ -8,11 +8,61 @@ import inspect
 
 from pyramid.interfaces import IViewMapperFactory
 
-from zope.interface import implements
+from zope.interface import implementer
 
+from pyramid_rpc.compat import PY3
 
+if PY3:
+    def _inspect_ob(f):
+        im = False
+
+        if hasattr(f, '__func__'):
+            im = True
+
+        elif not hasattr(f, '__defaults__'):
+            if hasattr(f, '__call__'):
+                f = f.__call__
+                if hasattr(f, '__func__'):
+                    im = True
+
+        if im:
+            f = f.__func__
+            c = f.__code__
+            defaults = f.__defaults__
+            names = c.co_varnames[1:c.co_argcount]
+        else:
+            c = f.__code__
+            defaults = f.__defaults__
+            names = c.co_varnames[:c.co_argcount]
+
+        return names, defaults
+else:
+    def _inspect_ob(f):
+        im = False
+
+        if hasattr(f, 'im_func'):
+            im = True
+
+        elif not hasattr(f, 'func_defaults'):
+            if hasattr(f, '__call__'):
+                f = f.__call__
+                if hasattr(f, 'im_func'):
+                    im = True
+
+        if im:
+            f = f.im_func
+            c = f.func_code
+            defaults = f.func_defaults
+            names = c.co_varnames[1:c.co_argcount]
+        else:
+            c = f.func_code
+            defaults = f.func_defaults
+            names = c.co_varnames[:c.co_argcount]
+
+        return names, defaults
+
+@implementer(IViewMapperFactory)
 class MapplyViewMapper(object):
-    implements(IViewMapperFactory)
 
     def __init__(self, **kw):
         self.attr = kw.get('attr')
@@ -62,28 +112,7 @@ class MapplyViewMapper(object):
         return mapped_view
 
     def mapply(self, ob, positional, keyword):
-
-        f = ob
-        im = False
-
-        if hasattr(f, 'im_func'):
-            im = True
-
-        elif not hasattr(f, 'func_defaults'):
-            if hasattr(f, '__call__'):
-                f = f.__call__
-                if hasattr(f, 'im_func'):
-                    im = True
-
-        if im:
-            f = f.im_func
-            c = f.func_code
-            defaults = f.func_defaults
-            names = c.co_varnames[1:c.co_argcount]
-        else:
-            defaults = f.func_defaults
-            c = f.func_code
-            names = c.co_varnames[:c.co_argcount]
+        names, defaults = _inspect_ob(ob)
 
         nargs = len(names)
         args = []
