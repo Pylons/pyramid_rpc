@@ -14,7 +14,8 @@ class TestJSONRPCIntegration(unittest.TestCase):
         testing.tearDown()
 
     def _callFUT(self, app, method, params, id=5, version='2.0',
-                 path='/api/jsonrpc', content_type='application/json'):
+                 path='/api/jsonrpc', content_type='application/json',
+                 expect_error=False):
         body = {}
         if id is not None:
             body['id'] = id
@@ -26,7 +27,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
             body['params'] = params
         resp = app.post(path, content_type=content_type,
                         params=json.dumps(body))
-        if id is not None:
+        if id is not None or expect_error:
             self.assertEqual(resp.status_int, 200)
             self.assertEqual(resp.content_type, 'application/json')
             result = resp.json
@@ -293,4 +294,16 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3, 4])
         self.assertEqual(result['error']['code'], -32602)
+
+    def test_it_error_with_no_id(self):
+        def view(request):
+            raise Exception
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [], id=None, expect_error=True)
+        self.assertEqual(result['error']['code'], -32603)
 
