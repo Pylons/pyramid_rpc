@@ -6,7 +6,8 @@ try:
     import pyamf
     from pyamf import remoting, util
 except ImportError: # pragma: nocover
-    pyamf = None
+    from nose import SkipTest
+    raise SkipTest
 
 class DummyLogging(object):
     def exception(self, *args):
