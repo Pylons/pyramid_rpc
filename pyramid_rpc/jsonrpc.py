@@ -9,14 +9,19 @@ from pyramid.httpexceptions import (
     HTTPNotFound,
 )
 from pyramid.renderers import null_renderer
+from pyramid.renderers import render
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
 from pyramid_rpc.api import MapplyViewMapper
 from pyramid_rpc.api import ViewMapperArgsInvalid
+from pyramid_rpc.compat import is_nonstr_iter
 
 
 log = logging.getLogger(__name__)
+
+
+_marker = object()
 
 
 class JsonRpcError(Exception):
@@ -67,17 +72,17 @@ class JsonRpcInternalError(JsonRpcError):
     message = 'internal error'
 
 
-def jsonrpc_error_response(error, id=None):
-    """ Marshal a Python Exception into a webob ``Response``
-    object with a body that is a JSON string suitable for use as
-    a JSON-RPC response with a content-type of ``application/json``
-    and return the response."""
+def make_error_response(request, error, id=None):
+    """ Marshal a Python Exception into a ``Response`` object with a
+    body that is a JSON string suitable for use as a JSON-RPC response
+    with a content-type of ``application/json`` and return the response.
 
-    body = json.dumps({
+    """
+    body = render(DEFAULT_RENDERER, {
         'jsonrpc': '2.0',
         'id': id,
         'error': error.as_dict(),
-    }).encode('utf-8')
+    }, request=request).encode('utf-8')
 
     response = Response(body)
     response.content_type = 'application/json'
@@ -105,7 +110,7 @@ def exception_view(exc, request):
         fault = JsonRpcInternalError()
         log.exception('json-rpc exception rpc_id:%s "%s"', rpc_id, exc)
 
-    return jsonrpc_error_response(fault, rpc_id)
+    return make_error_response(request, fault, rpc_id)
 
 
 def make_response(request, result):
@@ -124,11 +129,37 @@ def make_response(request, result):
         'id': rpc_id,
         'result': result,
     }
-    response.body = json.dumps(out).encode('utf-8')
+    response.charset = 'utf-8'
+    response.body = render(
+        DEFAULT_RENDERER, out, request=request).encode('utf-8')
     return response
 
 
-def setup_jsonrpc(request):
+def _render(value, system):
+    return json.dumps(value)
+
+
+def jsonrpc_renderer(info):
+    return _render
+
+
+class jsonrpc_view(object):
+    """ Decorator that wraps a view and converts the result into a valid
+    JSON-RPC Response object.
+
+    """
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __call__(self, context, request):
+        result = self.wrapped(context, request)
+        if not request.is_response(result):
+            result = make_response(request, result)
+        return result
+
+
+def setup_request(endpoint, request):
+    """ Parse a JSON-RPC request body."""
     try:
         body = request.json_body
     except ValueError:
@@ -153,78 +184,167 @@ def setup_jsonrpc(request):
               request.rpc_id, request.rpc_method)
 
 
-def add_jsonrpc_endpoint(self, name, *args, **kw):
+DEFAULT_RENDERER = 'pyramid_rpc:jsonrpc'
+
+
+def endpoint_predicate(info, request):
+    # find the endpoint info
+    key = info['route'].name
+    endpoint = request.registry.rpc_endpoints[key]
+
+    # potentially setup either rpc v1 or v2 from the parsed body
+    setup_request(endpoint, request)
+
+    # update request with endpoint information
+    request.rpc_endpoint = endpoint
+
+    # Always return True so that even if it isn't a valid RPC it
+    # will fall through to the notfound_view which will still
+    # return a valid JSON-RPC response.
+    return True
+
+
+class Endpoint(object):
+    def __init__(self, name, default_mapper, default_renderer):
+        self.name = name
+        self.default_mapper = default_mapper
+        self.default_renderer = default_renderer
+
+
+def add_jsonrpc_endpoint(config, name, *args, **kw):
     """Add an endpoint for handling JSON-RPC.
 
-    name
+    ``name``
 
         The name of the endpoint.
+
+    ``default_mapper``
+
+        A default view mapper that will be passed as the ``mapper``
+        argument to each of the endpoint's methods.
+
+    ``default_renderer``
+
+        A default renderer that will be passed as the ``renderer``
+        argument to each of the endpoint's methods. This should be the
+        string name of the renderer, registered via
+        :meth:`pyramid.config.Configurator.add_renderer`.
 
     A JSON-RPC method also accepts all of the arguments supplied to
-    Pyramid's ``add_route`` method.
+    :meth:`pyramid.config.Configurator.add_route`.
 
     """
-    def jsonrpc_endpoint_predicate(info, request):
-        # potentially setup either rpc v1 or v2 from the parsed body
-        setup_jsonrpc(request)
+    default_mapper = kw.pop('default_mapper', MapplyViewMapper)
+    default_renderer = kw.pop('default_renderer', DEFAULT_RENDERER)
 
-        # Always return True so that even if it isn't a valid RPC it
-        # will fall through to the notfound_view which will still
-        # return a valid JSON-RPC response.
-        return True
+    endpoint = Endpoint(
+        name,
+        default_mapper=default_mapper,
+        default_renderer=default_renderer,
+    )
+
+    if not hasattr(config.registry, 'rpc_endpoints'):
+        config.registry.rpc_endpoints = {}
+    config.registry.rpc_endpoints[name] = endpoint
+
     predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(jsonrpc_endpoint_predicate)
-    self.add_route(name, *args, **kw)
-    self.add_view(exception_view, route_name=name, context=Exception,
-                  permission=NO_PERMISSION_REQUIRED)
+    predicates.append(endpoint_predicate)
+    config.add_route(name, *args, **kw)
+    config.add_view(exception_view, route_name=name, context=Exception,
+                    permission=NO_PERMISSION_REQUIRED)
 
 
-def add_jsonrpc_method(self, view, **kw):
+# stole from pyramid 1.4
+def combine(*decorators):
+    def decorated(view_callable):
+        # reversed() is allows a more natural ordering in the api
+        for decorator in reversed(decorators):
+            view_callable = decorator(view_callable)
+        return view_callable
+    return decorated
+
+
+class MethodPredicate(object):
+    def __init__(self, method):
+        self.method = method
+
+    def __call__(self, context, request):
+        return getattr(request, 'rpc_method') == self.method
+
+
+def add_jsonrpc_method(config, view, **kw):
     """Add a method to a JSON-RPC endpoint.
 
-    endpoint
+    ``endpoint``
 
         The name of the endpoint.
 
-    method
+    ``method``
 
         The name of the method.
 
     A JSON-RPC method also accepts all of the arguments supplied to
-    Pyramid's ``add_view`` method.
+    :meth:`pyramid.config.Configurator.add_view`.
 
     A view mapper is registered by default which will match the
     ``request.rpc_args`` to parameters on the view. To override this
     behavior simply set the ``mapper`` argument to None or another
     view mapper.
 
+    .. note::
+
+       An endpoint **must** be defined before methods may be added.
+
     """
-    endpoint = kw.pop('endpoint', kw.pop('route_name', None))
-    if endpoint is None:
+    endpoint_name = kw.pop('endpoint', kw.pop('route_name', None))
+    if endpoint_name is None:
         raise ConfigurationError(
             'Cannot register a JSON-RPC endpoint without specifying the '
             'name of the endpoint.')
 
+    if not hasattr(config.registry, 'rpc_endpoints'):
+        raise ConfigurationError(
+            'You must activate the pyramid_rpc.jsonrpc package by including '
+            'it: config.include(\'pyramid_rpc.jsonrpc\')')
+    endpoint = config.registry.rpc_endpoints.get(endpoint_name)
+    if endpoint is None:
+        raise ConfigurationError(
+            'Could not find an endpoint with the name "%s".' % endpoint_name)
+
+    # pop the method name
     method = kw.pop('method', None)
     if method is None:
         raise ConfigurationError(
             'Cannot register a JSON-RPC method without specifying the '
             '"method"')
 
-    def jsonrpc_method_predicate(context, request):
-        return getattr(request, 'rpc_method', None) == method
-    predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(jsonrpc_method_predicate)
-    decorator = kw.get('decorator', lambda v: v)
-    def renderer(view):
-        def wrapper(context, request):
-            result = decorator(view)(context, request)
-            return make_response(request, result)
-        return wrapper
-    kw['decorator'] = renderer
+    mapper = kw.pop('mapper', _marker)
+    if mapper is _marker:
+        # only override mapper if not supplied
+        mapper = endpoint.default_mapper
+    kw['mapper'] = mapper
+
+    renderer = kw.pop('renderer', None)
+    if renderer is None:
+        renderer = endpoint.default_renderer
     kw['renderer'] = null_renderer
-    kw.setdefault('mapper', MapplyViewMapper)
-    self.add_view(view, route_name=endpoint, **kw)
+
+    predicates = kw.setdefault('custom_predicates', [])
+    predicates.append(MethodPredicate(method))
+
+    decorator = kw.get('decorator', None)
+    if decorator is None:
+        decorator = jsonrpc_view
+    else:
+        if not is_nonstr_iter(decorator):
+            decorator = (decorator,)
+        # we want to apply the view_wrapper first, then the other decorators
+        # and combine() reverses the order, so ours goes last
+        decorators = list(decorator) + [jsonrpc_view]
+        decorator = combine(*decorators)
+    kw['decorator'] = decorator
+
+    config.add_view(view, route_name=endpoint_name, **kw)
 
 
 class jsonrpc_method(object):
@@ -276,6 +396,10 @@ def includeme(config):
     - ``add_jsonrpc_method``: Add a method to a JSON-RPC endpoint.
 
     """
+    if not hasattr(config.registry, 'rpc_endpoints'):
+        config.registry.rpc_endpoints = {}
+
+    config.add_renderer(DEFAULT_RENDERER, jsonrpc_renderer)
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)
     config.add_directive('add_jsonrpc_method', add_jsonrpc_method)
     config.add_view(exception_view, context=JsonRpcError,
