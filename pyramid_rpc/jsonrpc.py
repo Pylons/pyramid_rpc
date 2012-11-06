@@ -78,11 +78,12 @@ def make_error_response(request, error, id=None):
     with a content-type of ``application/json`` and return the response.
 
     """
-    body = render(DEFAULT_RENDERER, {
+    out = {
         'jsonrpc': '2.0',
         'id': id,
         'error': error.as_dict(),
-    }, request=request).encode('utf-8')
+    }
+    body = render(DEFAULT_RENDERER, out, request=request).encode('utf-8')
 
     response = Response(body)
     response.content_type = 'application/json'
@@ -120,9 +121,8 @@ def make_response(request, result):
     if rpc_id is None:
         return HTTPNoContent()
 
+    # store content_type before render is called
     ct = response.content_type
-    if ct == response.default_content_type:
-        response.content_type = 'application/json'
 
     out = {
         'jsonrpc': '2.0',
@@ -131,7 +131,12 @@ def make_response(request, result):
     }
     response.charset = 'utf-8'
     response.body = render(
-        DEFAULT_RENDERER, out, request=request).encode('utf-8')
+        request.rpc_renderer, out, request=request
+    ).encode('utf-8')
+
+    if ct == response.default_content_type:
+        response.content_type = 'application/json'
+
     return response
 
 
@@ -187,21 +192,22 @@ def setup_request(endpoint, request):
 DEFAULT_RENDERER = 'pyramid_rpc:jsonrpc'
 
 
-def endpoint_predicate(info, request):
-    # find the endpoint info
-    key = info['route'].name
-    endpoint = request.registry.rpc_endpoints[key]
+class EndpointPredicate(object):
+    def __call__(self, info, request):
+        # find the endpoint info
+        key = info['route'].name
+        endpoint = request.registry.rpc_endpoints[key]
 
-    # potentially setup either rpc v1 or v2 from the parsed body
-    setup_request(endpoint, request)
+        # potentially setup either rpc v1 or v2 from the parsed body
+        setup_request(endpoint, request)
 
-    # update request with endpoint information
-    request.rpc_endpoint = endpoint
+        # update request with endpoint information
+        request.rpc_endpoint = endpoint
 
-    # Always return True so that even if it isn't a valid RPC it
-    # will fall through to the notfound_view which will still
-    # return a valid JSON-RPC response.
-    return True
+        # Always return True so that even if it isn't a valid RPC it
+        # will fall through to the notfound_view which will still
+        # return a valid JSON-RPC response.
+        return True
 
 
 class Endpoint(object):
@@ -243,12 +249,10 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
         default_renderer=default_renderer,
     )
 
-    if not hasattr(config.registry, 'rpc_endpoints'):
-        config.registry.rpc_endpoints = {}
     config.registry.rpc_endpoints[name] = endpoint
 
     predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(endpoint_predicate)
+    predicates.append(EndpointPredicate())
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
                     permission=NO_PERMISSION_REQUIRED)
@@ -265,11 +269,14 @@ def combine(*decorators):
 
 
 class MethodPredicate(object):
-    def __init__(self, method):
+    def __init__(self, method, renderer):
         self.method = method
+        self.renderer = renderer
 
     def __call__(self, context, request):
-        return getattr(request, 'rpc_method') == self.method
+        if getattr(request, 'rpc_method') == self.method:
+            request.rpc_renderer = self.renderer
+            return True
 
 
 def add_jsonrpc_method(config, view, **kw):
@@ -303,6 +310,7 @@ def add_jsonrpc_method(config, view, **kw):
             'name of the endpoint.')
 
     if not hasattr(config.registry, 'rpc_endpoints'):
+        # this would only happen if using jsonrpc_method decorator
         raise ConfigurationError(
             'You must activate the pyramid_rpc.jsonrpc package by including '
             'it: config.include(\'pyramid_rpc.jsonrpc\')')
@@ -330,7 +338,7 @@ def add_jsonrpc_method(config, view, **kw):
     kw['renderer'] = null_renderer
 
     predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(MethodPredicate(method))
+    predicates.append(MethodPredicate(method, renderer=renderer))
 
     decorator = kw.get('decorator', None)
     if decorator is None:
