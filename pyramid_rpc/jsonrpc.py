@@ -305,11 +305,6 @@ def add_jsonrpc_method(config, view, **kw):
             'Cannot register a JSON-RPC endpoint without specifying the '
             'name of the endpoint.')
 
-    if not hasattr(config.registry, 'rpc_endpoints'):
-        # this would only happen if using jsonrpc_method decorator
-        raise ConfigurationError(
-            'You must activate the pyramid_rpc.jsonrpc package by including '
-            'it: config.include(\'pyramid_rpc.jsonrpc\')')
     endpoint = config.registry.rpc_endpoints.get(endpoint_name)
     if endpoint is None:
         raise ConfigurationError(
