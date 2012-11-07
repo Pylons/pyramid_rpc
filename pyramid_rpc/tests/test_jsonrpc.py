@@ -331,10 +331,87 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result['result'], 'foo')
         self.assertTrue(dummy_decorator.called)
 
+    def test_it_with_default_mapper(self):
+        def view(request):
+            return request.rpc_args
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc', default_mapper=None)
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', ['a', 'b', 'c'])
+        self.assertEqual(result['result'], ['a', 'b', 'c'])
+
+    def test_override_default_mapper(self):
+        from pyramid_rpc.mapper import MapplyViewMapper
+        def view(request, a, b, c):
+            return (a, b, c)
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc', default_mapper=None)
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy',
+                                  mapper=MapplyViewMapper)
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', ['a', 'b', 'c'])
+        self.assertEqual(result['result'], ['a', 'b', 'c'])
+
+    def test_it_with_default_renderer(self):
+        def view(request):
+            return 'bar'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        dummy_renderer = DummyRenderer('foo')
+        config.add_renderer('jsonrpc', dummy_renderer)
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc',
+                                    default_renderer='jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['result'], 'foo')
+        self.assertEqual(dummy_renderer.called, True)
+
+    def test_override_default_renderer(self):
+        def view(request):
+            return 'bar'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        dummy_renderer = DummyRenderer('foo')
+        dummy_renderer2 = DummyRenderer('baz')
+        config.add_renderer('jsonrpc', dummy_renderer)
+        config.add_renderer('jsonrpc2', dummy_renderer2)
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc',
+                                    default_renderer='jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy',
+                                  renderer='jsonrpc2')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['result'], 'baz')
+        self.assertEqual(dummy_renderer.called, False)
+        self.assertEqual(dummy_renderer2.called, True)
+
 
 class DummyDecorator(object):
+    called = False
+
     def __call__(self, view):
         def wrapper(context, request):
             self.called = True
             return view(context, request)
         return wrapper
+
+class DummyRenderer(object):
+    called = False
+
+    def __init__(self, result):
+        self.result = result
+
+    def __call__(self, info):
+        def _render(value, system):
+            self.called = True
+            value['result'] = self.result
+            return json.dumps(value)
+        return _render

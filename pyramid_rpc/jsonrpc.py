@@ -10,9 +10,10 @@ from pyramid.renderers import render
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
+from pyramid_rpc.compat import is_nonstr_iter
 from pyramid_rpc.mapper import MapplyViewMapper
 from pyramid_rpc.mapper import ViewMapperArgsInvalid
-from pyramid_rpc.compat import is_nonstr_iter
+from pyramid_rpc.util import combine
 
 
 log = logging.getLogger(__name__)
@@ -263,16 +264,6 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
                     permission=NO_PERMISSION_REQUIRED)
-
-
-# stole from pyramid 1.4
-def combine(*decorators):
-    def decorated(view_callable):
-        # reversed() is allows a more natural ordering in the api
-        for decorator in reversed(decorators):
-            view_callable = decorator(view_callable)
-        return view_callable
-    return decorated
 
 
 def add_jsonrpc_method(config, view, **kw):
