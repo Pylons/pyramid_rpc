@@ -1,3 +1,15 @@
+next release
+============
+
+Backwards Incompatibilities
+---------------------------
+
+- JSON-RPC
+
+  + Notification requests (``id == null``) used to return a
+    HTTP ``204 No Content`` response. Now they return ``200 OK`` like
+    everything else, with an empty response.
+
 0.4.1 (2012-10-27)
 ==================
 

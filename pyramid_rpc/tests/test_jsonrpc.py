@@ -27,15 +27,15 @@ class TestJSONRPCIntegration(unittest.TestCase):
             body['params'] = params
         resp = app.post(path, content_type=content_type,
                         params=json.dumps(body))
+        self.assertEqual(resp.status_int, 200)
         if id is not None or expect_error:
-            self.assertEqual(resp.status_int, 200)
             self.assertEqual(resp.content_type, 'application/json')
             result = resp.json
             self.assertEqual(result['jsonrpc'], '2.0')
             self.assertEqual(result['id'], id)
         else:
-            self.assertEqual(resp.status_int, 204)
-            result = resp.body
+            result = resp.json
+            self.assertEqual(result, '')
         return result
 
     def test_add_jsonrpc_method_with_no_endpoint(self):
@@ -121,7 +121,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = config.make_wsgi_app()
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3], id=None)
-        self.assertEqual(result, b'')
+        self.assertEqual(result, '')
 
     def test_it_with_no_params(self):
         def view(request):

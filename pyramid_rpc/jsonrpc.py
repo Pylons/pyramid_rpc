@@ -3,11 +3,8 @@ import logging
 
 import venusian
 from pyramid.exceptions import ConfigurationError
-from pyramid.httpexceptions import (
-    HTTPForbidden,
-    HTTPNoContent,
-    HTTPNotFound,
-)
+from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPNotFound
 from pyramid.renderers import null_renderer
 from pyramid.renderers import render
 from pyramid.response import Response
@@ -118,9 +115,6 @@ def make_response(request, result):
     rpc_id = getattr(request, 'rpc_id', None)
     response = request.response
 
-    if rpc_id is None:
-        return HTTPNoContent()
-
     # store content_type before render is called
     ct = response.content_type
 
@@ -128,8 +122,7 @@ def make_response(request, result):
         'jsonrpc': '2.0',
         'id': rpc_id,
         'result': result,
-    }
-    response.charset = 'utf-8'
+    } if request.rpc_id is not None else ''
     response.body = render(
         request.rpc_renderer, out, request=request
     ).encode('utf-8')
