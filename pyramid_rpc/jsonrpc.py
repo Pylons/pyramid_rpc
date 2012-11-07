@@ -86,7 +86,7 @@ def make_error_response(request, error, id=None):
     }
     body = render(renderer, out, request=request).encode('utf-8')
 
-    response = Response(body)
+    response = Response(body, charset='utf-8')
     response.content_type = 'application/json'
     return response
 
@@ -129,7 +129,7 @@ def make_response(request, result):
     } if request.rpc_id is not None else ''
     response.body = render(
         request.rpc_renderer, out, request=request
-    ).encode('utf-8')
+    ).encode(response.charset)
 
     if ct == response.default_content_type:
         response.content_type = 'application/json'

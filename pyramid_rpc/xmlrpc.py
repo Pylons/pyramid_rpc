@@ -76,12 +76,11 @@ def make_response(request, result):
     if ct == response.default_content_type:
         response.content_type = 'text/xml'
 
-    value = xmlrpclib.dumps((result,), methodresponse=True)
-
-    if isinstance(value, text_type): # pragma: no cover
-        response.text = value
-    else:
-        response.body = value
+    response.body = (
+        xmlrpclib.dumps(
+            (result,), methodresponse=True
+        ).encode(response.charset)
+    )
     return response
 
 
