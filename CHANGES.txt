@@ -6,6 +6,12 @@ Features
 
 - JSON-RPC
 
+  + The ``renderer`` can now be overridden. This will allow
+    any renderer to be used to convert a method's results to a
+    JSON-encoded string. Pyramid 1.4+ has a very flexible JSON
+    renderer that will allow a custom serializer and adapters for
+    custom data types (see :class:`pyramid.renderers.JSON` for more).
+
   + Endpoints support ``default_mapper`` and ``default_renderer`` which
     are propagated to their methods. Individual methods can override these
     values if necessary.
