@@ -1,6 +1,15 @@
 next release
 ============
 
+Features
+--------
+
+- JSON-RPC
+
+  + Endpoints support ``default_mapper`` and ``default_renderer`` which
+    are propagated to their methods. Individual methods can override these
+    values if necessary.
+
 Backwards Incompatibilities
 ---------------------------
 
