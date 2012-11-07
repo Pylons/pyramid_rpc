@@ -6,8 +6,8 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
-from pyramid_rpc.api import MapplyViewMapper
-from pyramid_rpc.api import ViewMapperArgsInvalid
+from pyramid_rpc.mapper import MapplyViewMapper
+from pyramid_rpc.mapper import ViewMapperArgsInvalid
 from pyramid_rpc.compat import xmlrpclib
 
 

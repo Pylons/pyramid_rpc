@@ -1,9 +1,3 @@
-"""RPC Utility methods
-
-These utility methods are intended for use by RPC functions to lookup
-qualifying view to call in response to an RPC method.
-
-"""
 import inspect
 
 from pyramid.interfaces import IViewMapperFactory

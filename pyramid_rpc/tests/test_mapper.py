@@ -3,7 +3,7 @@ from pyramid import testing
 
 class TestMapplyViewMapper(unittest.TestCase):
     def _makeOne(self, **kw):
-        from pyramid_rpc.api import MapplyViewMapper
+        from pyramid_rpc.mapper import MapplyViewMapper
         return MapplyViewMapper(**kw)
 
     def test___call__isfunc_no_rpc_args_no_attr(self):
