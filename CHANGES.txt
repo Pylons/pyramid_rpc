@@ -13,8 +13,14 @@ Features
     custom data types (see :class:`pyramid.renderers.JSON` for more).
 
   + Endpoints support ``default_mapper`` and ``default_renderer`` which
-    are propagated to their methods. Individual methods can override these
-    values if necessary.
+    are propagated to all methods attached to the endpoint. Individual
+    methods can override these values if necessary on a case-by-case basis.
+
+- XML-RPC
+
+  + Endpoints support ``default_mapper`` which is propagated to all methods
+    attached to the endpoint. Individual methods can override this
+    values if necessary on a case-by-case basis.
 
 Backwards Incompatibilities
 ---------------------------

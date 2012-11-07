@@ -22,10 +22,19 @@ class TestXMLRPCIntegration(unittest.TestCase):
         self.assertEqual(resp.content_type, 'text/xml')
         return xmlrpclib.loads(resp.body)[0][0]
 
-    def test_add_xmlrpc_method_with_no_endpoint(self):
+    def test_add_xmlrpc_method_with_undefined_endpoint(self):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.xmlrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_xmlrpc_method,
+                          lambda r: None, endpoint='rpc', method='dummy')
+
+    def test_add_xmlrpc_method_with_missing_endpoint_param(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
         self.assertRaises(ConfigurationError,
                           config.add_xmlrpc_method,
                           lambda r: None, method='dummy')
@@ -34,6 +43,7 @@ class TestXMLRPCIntegration(unittest.TestCase):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
         self.assertRaises(ConfigurationError,
                           config.add_xmlrpc_method,
                           lambda r: None, endpoint='rpc')
@@ -212,3 +222,53 @@ class TestXMLRPCIntegration(unittest.TestCase):
         else: # pragma: no cover
             raise AssertionError
 
+    def test_it_with_decorator(self):
+        def view(request):
+            return 'foo'
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        dummy_decorator = DummyDecorator()
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy',
+                                 decorator=dummy_decorator)
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ())
+        self.assertEqual(resp, 'foo')
+        self.assertTrue(dummy_decorator.called)
+
+    def test_it_with_default_mapper(self):
+        def view(request):
+            return request.rpc_args
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc', default_mapper=None)
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ('a', 'b', 'c'))
+        self.assertEqual(resp, ['a', 'b', 'c'])
+
+    def test_override_default_mapper(self):
+        from pyramid_rpc.mapper import MapplyViewMapper
+        def view(request, a, b, c):
+            return (a, b, c)
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc', default_mapper=None)
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy',
+                                 mapper=MapplyViewMapper)
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ('a', 'b', 'c'))
+        self.assertEqual(resp, ['a', 'b', 'c'])
+
+
+class DummyDecorator(object):
+    called = False
+
+    def __call__(self, view):
+        def wrapper(context, request):
+            self.called = True
+            return view(context, request)
+        return wrapper
