@@ -38,22 +38,6 @@ class TestJSONRPCIntegration(unittest.TestCase):
             self.assertEqual(result, '')
         return result
 
-    def test_add_jsonrpc_method_with_no_endpoint(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, method='dummy')
-
-    def test_add_jsonrpc_method_with_no_method(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, endpoint='rpc')
-
     def test_it(self):
         def view(request, a, b):
             return {'a': a, 'b': b}
@@ -65,6 +49,31 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], {'a': 2, 'b': 3})
+
+    def test_add_jsonrpc_method_with_no_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, method='dummy')
+
+    def test_add_jsonrpc_method_with_missing_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, endpoint='rpc', method='foo')
+
+    def test_add_jsonrpc_method_with_no_method(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, endpoint='rpc')
 
     def test_it_with_no_mapper(self):
         def view(request):
@@ -307,3 +316,25 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', [], id=None, expect_error=True)
         self.assertEqual(result['error']['code'], -32603)
 
+    def test_it_with_decorator(self):
+        def view(request):
+            return 'foo'
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        dummy_decorator = DummyDecorator()
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy',
+                                  decorator=dummy_decorator)
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['result'], 'foo')
+        self.assertTrue(dummy_decorator.called)
+
+
+class DummyDecorator(object):
+    def __call__(self, view):
+        def wrapper(context, request):
+            self.called = True
+            return view(context, request)
+        return wrapper
