@@ -5,6 +5,7 @@ from pyramid import testing
 
 from webtest import TestApp
 
+
 class TestJSONRPCIntegration(unittest.TestCase):
 
     def setUp(self):
@@ -50,21 +51,22 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], {'a': 2, 'b': 3})
 
-    def test_add_jsonrpc_method_with_no_endpoint(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, method='dummy')
-
-    def test_add_jsonrpc_method_with_missing_endpoint(self):
+    def test_add_jsonrpc_method_with_undefined_endpoint(self):
         from pyramid.exceptions import ConfigurationError
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
         self.assertRaises(ConfigurationError,
                           config.add_jsonrpc_method,
                           lambda r: None, endpoint='rpc', method='foo')
+
+    def test_add_jsonrpc_method_with_missing_endpoint_param(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, method='dummy')
 
     def test_add_jsonrpc_method_with_no_method(self):
         from pyramid.exceptions import ConfigurationError
@@ -402,6 +404,7 @@ class DummyDecorator(object):
             self.called = True
             return view(context, request)
         return wrapper
+
 
 class DummyRenderer(object):
     called = False
