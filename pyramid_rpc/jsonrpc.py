@@ -75,12 +75,15 @@ def make_error_response(request, error, id=None):
     with a content-type of ``application/json`` and return the response.
 
     """
+    # we may need to render a parse error, at which point we don't know
+    # much about the request
+    renderer = getattr(request, 'rpc_renderer', DEFAULT_RENDERER)
     out = {
         'jsonrpc': '2.0',
         'id': id,
         'error': error.as_dict(),
     }
-    body = render(DEFAULT_RENDERER, out, request=request).encode('utf-8')
+    body = render(renderer, out, request=request).encode('utf-8')
 
     response = Response(body)
     response.content_type = 'application/json'
@@ -203,6 +206,17 @@ class EndpointPredicate(object):
         return True
 
 
+class MethodPredicate(object):
+    def __init__(self, method, renderer):
+        self.method = method
+        self.renderer = renderer
+
+    def __call__(self, context, request):
+        if getattr(request, 'rpc_method') == self.method:
+            request.rpc_renderer = self.renderer
+            return True
+
+
 class Endpoint(object):
     def __init__(self, name, default_mapper, default_renderer):
         self.name = name
@@ -259,17 +273,6 @@ def combine(*decorators):
             view_callable = decorator(view_callable)
         return view_callable
     return decorated
-
-
-class MethodPredicate(object):
-    def __init__(self, method, renderer):
-        self.method = method
-        self.renderer = renderer
-
-    def __call__(self, context, request):
-        if getattr(request, 'rpc_method') == self.method:
-            request.rpc_renderer = self.renderer
-            return True
 
 
 def add_jsonrpc_method(config, view, **kw):
