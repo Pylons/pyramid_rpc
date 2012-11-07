@@ -8,7 +8,12 @@ other Pyramid view.
 import pyamf
 from pyamf import remoting
 from pyamf.remoting import gateway
-from pyramid import httpexceptions
+
+from pyramid.httpexceptions import (
+    HTTPBadRequest,
+    HTTPInternalServerError,
+    HTTPMethodNotAllowed,
+)
 from pyramid.response import Response
 
 
@@ -40,7 +45,7 @@ class PyramidGateway(gateway.BaseGateway):
     def __call__(self, request):
         """Processes and dispatches the request"""
         if request.method != 'POST':
-            return httpexceptions.HTTPMethodNotAllowed(['POST'])
+            return HTTPMethodNotAllowed(['POST'])
 
         body = request.body
         stream = None
@@ -60,7 +65,7 @@ class PyramidGateway(gateway.BaseGateway):
 
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
-            return httpexceptions.HTTPBadRequest(detail=response)
+            return HTTPBadRequest(detail=response)
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -72,7 +77,7 @@ class PyramidGateway(gateway.BaseGateway):
 
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
-            return httpexceptions.HTTPInternalServerError(detail=response)
+            return HTTPInternalServerError(detail=response)
 
         if self.logger:
             self.logger.debug("AMF Request: %r" % amf_request)
@@ -92,7 +97,7 @@ class PyramidGateway(gateway.BaseGateway):
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
 
-            return httpexceptions.HTTPInternalServerError(detail=response)
+            return HTTPInternalServerError(detail=response)
 
         if self.logger:
             self.logger.debug("AMF Response: %r" % response)
@@ -111,7 +116,7 @@ class PyramidGateway(gateway.BaseGateway):
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
 
-            return httpexceptions.HTTPInternalServerError(detail=response)
+            return HTTPInternalServerError(detail=response)
 
         buf = stream.getvalue()
 
