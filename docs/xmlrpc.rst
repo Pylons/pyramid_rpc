@@ -12,7 +12,7 @@ other packages.
 Setup
 =====
 
-Use the ``includeme`` via ``config.include``:
+Use the ``includeme`` via :meth:`pyramid.config.Configurator.include`:
 
 .. code-block:: python
 
@@ -21,12 +21,12 @@ Use the ``includeme`` via ``config.include``:
 Once activated, the following happens:
 
 #. The :meth:`pyramid_rpc.xmlrpc.add_xmlrpc_endpoint` directive is added to
-   the ``configurator`` instance.
+   the ``config`` instance.
 
 #. The :meth:`pyramid_rpc.xmlrpc.add_xmlrpc_method` directive is added to
-   the ``configurator`` instance.
+   the ``config`` instance.
 
-#. An exception view is registered for ``xmlrpclib.Fault`` exceptions.
+#. An exception view is registered for :class:`xmlrpclib.Fault` exceptions.
 
 Usage
 =====
@@ -40,7 +40,7 @@ Adding a XML-RPC Endpoint
 
 An :term:`endpoint` is added via the
 :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_endpoint` directive on the
-``configurator`` instance.
+``config`` instance.
 
 Example:
 
@@ -51,8 +51,8 @@ Example:
     config.add_xmlrpc_endpoint('api', '/api/xmlrpc')
 
 It is possible to add multiple endpoints as well as pass extra arguments to
-``add_xmlrpc_endpoint`` to handle traversal, which can assist in adding
-security to your RPC API.
+:func:`~pyramid_rpc.xmlrpc.add_xmlrpc_endpoint` to handle traversal, which
+can assist in adding security to your RPC API.
 
 Exposing XML-RPC Methods
 -------------------------
@@ -60,7 +60,7 @@ Exposing XML-RPC Methods
 Methods on your API are exposed by attaching views to an :term:`endpoint`.
 Methods may be attached via the
 :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_method` which is a thin wrapper
-around Pyramid's ``add_view`` function.
+around Pyramid's :meth:`pyramid.config.Configurator.add_view` method.
 
 Example:
 
@@ -74,7 +74,7 @@ Example:
 If you prefer, you can use the :func:`~pyramid_rpc.xmlrpc.xmlrpc_method`
 view decorator to declare your methods closer to your actual code.
 Remember when using this lazy configuration technique, it's always necessary
-to call ``config.scan()`` from within your setup code.
+to call :meth:`pyramid.config.Configurator.scan` from within your setup code.
 
 .. code-block:: python
 
@@ -105,20 +105,20 @@ extra view predicates to the method, as well as ``permission`` requirements.
 View Mappers
 ------------
 
-A view mapper is registered for JSON-RPC methods by default which will
+A view mapper is registered for XML-RPC methods by default which will
 match the arguments from ``request.rpc_args`` to the parameters of the
 view. Optional arguments are allowed and an error will be returned if too
 many or too few arguments are supplied to the view.
 
-This default view mapper may be overridden by setting ``mapper=None``
-when using :func:`~pyramid_rpc.jsonrpc.jsonrpc_method` or
-:func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`. Of course, another mapper
-may be specified as well.
+This default view mapper may be overridden by setting the
+``default_mapper`` option on :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_endpoint`
+or the ``mapper`` option when using :func:`~pyramid_rpc.xmlrpc.xmlrpc_method`
+or :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_method`.
 
 Call Example
 ============
 
-Using Python's ``xmlrpclib``, it's simple to instantiate a ``ServerProxy``
+Using Python's :mod:`xmlrpclib`, it's simple to instantiate a ``ServerProxy``
 to call the function via an XML-RPC client.
 
 .. code-block:: python

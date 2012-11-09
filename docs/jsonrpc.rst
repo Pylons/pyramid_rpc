@@ -4,7 +4,7 @@
 JSON-RPC 
 ========
 
-`pyramid_rpc` supports 
+:mod:`pyramid_rpc` supports 
 `JSON-RPC 2.0 Specification <http://www.jsonrpc.org/specification>`_ .
 
 .. code-block:: python
@@ -80,7 +80,7 @@ Exposing JSON-RPC Methods
 Methods on your API are exposed by attaching views to an :term:`endpoint`.
 Methods may be attached via the
 :func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method` which is a thin wrapper
-around :meth:`pyramid.config.Configurator.add_view` function.
+around :meth:`pyramid.config.Configurator.add_view` method.
 
 Example:
 
@@ -157,10 +157,10 @@ match the arguments from ``request.rpc_args`` to the parameters of the
 view. Optional arguments are allowed and an error will be returned if too
 many or too few arguments are supplied to the view.
 
-This default view mapper may be overridden by setting ``mapper=None``
-when using :func:`~pyramid_rpc.jsonrpc.jsonrpc_method` or
-:func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`. Of course, another mapper
-may be specified as well.
+This default view mapper may be overridden by setting the
+``default_mapper`` option on :func:`~pyramid_rpc.jsonrpc.add_jsonrpc_endpoint`
+or the ``mapper`` option when using :func:`~pyramid_rpc.jsonrpc.jsonrpc_method`
+or :func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`.
 
 HTTP GET and POST Support
 -------------------------
