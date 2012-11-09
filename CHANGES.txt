@@ -6,6 +6,9 @@ Features
 
 - JSON-RPC
 
+  + Added support for JSON-RPC requests over HTTP GET. All version 2.0
+    parameters are required, but should be embedded in the query string.
+
   + The ``renderer`` can now be overridden. This will allow
     any renderer to be used to convert a method's results to a
     JSON-encoded string. Pyramid 1.4+ has a very flexible JSON
@@ -26,6 +29,10 @@ Backwards Incompatibilities
 ---------------------------
 
 - JSON-RPC
+
+  + With HTTP GET support added, any existing installation will now allow
+    JSON-RPC requests over GET. To disable this, add
+    ``request_method='POST'`` to your endpoint.
 
   + Notification requests (``id == null``) used to return a
     HTTP ``204 No Content`` response. Now they return ``200 OK`` like
