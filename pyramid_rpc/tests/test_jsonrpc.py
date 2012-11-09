@@ -6,6 +6,39 @@ from pyramid import testing
 from webtest import TestApp
 
 
+class Test_add_jsonrpc_method(unittest.TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp()
+        self.config.include('pyramid_rpc.jsonrpc')
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def test_with_undefined_endpoint(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, endpoint='rpc', method='foo')
+
+    def test_with_missing_endpoint_param(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, method='dummy')
+
+    def test_with_no_method_param(self):
+        from pyramid.exceptions import ConfigurationError
+        config = self.config
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        self.assertRaises(ConfigurationError,
+                          config.add_jsonrpc_method,
+                          lambda r: None, endpoint='rpc')
+
+
 class TestJSONRPCIntegration(unittest.TestCase):
 
     def setUp(self):
@@ -50,32 +83,6 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], {'a': 2, 'b': 3})
-
-    def test_add_jsonrpc_method_with_undefined_endpoint(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, endpoint='rpc', method='foo')
-
-    def test_add_jsonrpc_method_with_missing_endpoint_param(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, method='dummy')
-
-    def test_add_jsonrpc_method_with_no_method(self):
-        from pyramid.exceptions import ConfigurationError
-        config = self.config
-        config.include('pyramid_rpc.jsonrpc')
-        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
-        self.assertRaises(ConfigurationError,
-                          config.add_jsonrpc_method,
-                          lambda r: None, endpoint='rpc')
 
     def test_it_with_no_mapper(self):
         def view(request):
