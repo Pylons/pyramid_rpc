@@ -403,6 +403,112 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(dummy_renderer2.called, True)
 
 
+class TestGET(unittest.TestCase):
+
+    def setUp(self):
+        def view(request, a, b=3):
+            return [a, b]
+        self.config = config = testing.setUp()
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def _makeTestApp(self):
+        app = self.config.make_wsgi_app()
+        app = TestApp(app)
+        return app
+
+    def _callFUT(self, app, method, params, id='5', version='2.0',
+                 path='/api/jsonrpc', expect_error=False):
+        qitems = []
+        if id is not None:
+            qitems.append(('id', id))
+        if version is not None:
+            qitems.append(('jsonrpc', version))
+        if method is not None:
+            qitems.append(('method', method))
+        if params is not None:
+            if isinstance(params, str):
+                qitems.append(('params', params))
+            else:
+                qitems.append(('params', json.dumps(params)))
+        #import pdb; pdb.set_trace()
+        resp = app.get(path, params=qitems)
+        self.assertEqual(resp.status_int, 200)
+        if id is not None or expect_error:
+            self.assertEqual(resp.content_type, 'application/json')
+            result = resp.json
+            self.assertEqual(result['jsonrpc'], '2.0')
+            self.assertEqual(result['id'], id)
+        else:
+            result = resp.json
+            self.assertEqual(result, '')
+        return result
+
+    def test_it(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', [2, 3])
+        self.assertEqual(result['result'], [2, 3])
+
+    def test_it_named_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', {'a': 2, 'b': 3})
+        self.assertEqual(result['result'], [2, 3])
+
+    def test_it_with_default_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', [2])
+        self.assertEqual(result['result'], [2, 3])
+
+    def test_it_with_too_few_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', [])
+        self.assertEqual(result['error']['code'], -32602)
+
+    def test_it_with_too_many_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', [2, 3, 4])
+        self.assertEqual(result['error']['code'], -32602)
+
+    def test_it_with_unparseable_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', 'foo', id=None, expect_error=True)
+        self.assertEqual(result['error']['code'], -32700)
+
+    def test_it_with_missing_args(self):
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'dummy', None)
+        self.assertEqual(result['error']['code'], -32602)
+
+    def test_it_with_no_id(self):
+        app = self._makeTestApp()
+        self._callFUT(app, 'dummy', [2, 3], id=None)
+
+    def test_it_error_with_no_id(self):
+        def view(request):
+            raise Exception
+        config = self.config
+        config.add_jsonrpc_method(view, endpoint='rpc', method='err')
+        app = self._makeTestApp()
+        result = self._callFUT(app, 'err', [], id=None, expect_error=True)
+        self.assertEqual(result['error']['code'], -32603)
+
+    def test_PUT(self):
+        app = self._makeTestApp()
+        response = app.put('/api/jsonrpc')
+        result = response.json_body
+        self.assertEqual(result['error']['code'], -32600)
+
+    def test_DELETE(self):
+        app = self._makeTestApp()
+        response = app.delete('/api/jsonrpc')
+        result = response.json_body
+        self.assertEqual(result['error']['code'], -32600)
+
+
 class DummyDecorator(object):
     called = False
 

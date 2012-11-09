@@ -160,8 +160,24 @@ class jsonrpc_view(object):
         return result
 
 
-def setup_request(endpoint, request):
-    """ Parse a JSON-RPC request body."""
+def parse_request_GET(request):
+    """ Parse JSON-RPC parameters from the request query string."""
+    args = request.GET.get('params')
+    if args is not None:
+        try:
+            request.rpc_args = json.loads(args)
+        except ValueError:
+            raise JsonRpcParseError
+    else:
+        request.rpc_args = ()
+
+    request.rpc_method = request.GET.get('method')
+    request.rpc_id = request.GET.get('id')
+    request.rpc_version = request.GET.get('jsonrpc')
+
+
+def parse_request_POST(request):
+    """ Parse JSON-RPC parameters from the request body."""
     try:
         body = request.json_body
     except ValueError:
@@ -172,14 +188,24 @@ def setup_request(endpoint, request):
     request.rpc_method = body.get('method')
     request.rpc_version = body.get('jsonrpc')
 
+
+def setup_request(endpoint, request):
+    """ Parse a JSON-RPC request body."""
+    if request.method == 'GET':
+        parse_request_GET(request)
+    elif request.method == 'POST':
+        parse_request_POST(request)
+    else:
+        log.debug('unsupported request method "%s"', request.method)
+        raise JsonRpcRequestInvalid
+
     if request.rpc_version != '2.0':
         log.debug('id:%s invalid rpc version %s',
                   request.rpc_id, request.rpc_version)
         raise JsonRpcRequestInvalid
 
     if request.rpc_method is None:
-        log.debug('id:%s invalid rpc method %s',
-                  request.rpc_id, request.rpc_method)
+        log.debug('id:%s invalid rpc method', request.rpc_id)
         raise JsonRpcRequestInvalid
 
     log.debug('handling id:%s method:%s',
