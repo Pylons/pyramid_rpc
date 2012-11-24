@@ -263,6 +263,19 @@ class TestXMLRPCIntegration(unittest.TestCase):
         resp = self._callFUT(app, 'dummy', ('a', 'b', 'c'))
         self.assertEqual(resp, ['a', 'b', 'c'])
 
+    def test_nonascii_request(self):
+        def view(request, a, b):
+            return {'a': a, 'b': b}
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        val = 'S\xc3\xa9bastien'.decode('utf-8')
+        resp = self._callFUT(app, 'dummy', (2, val))
+        self.assertEqual(resp, {'a': 2, 'b': val})
+
 
 class DummyDecorator(object):
     called = False
