@@ -7,12 +7,15 @@ from pyramid.renderers import null_renderer
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
-from pyramid_rpc.compat import is_nonstr_iter
-from pyramid_rpc.compat import text_type
-from pyramid_rpc.compat import xmlrpclib
-from pyramid_rpc.mapper import MapplyViewMapper
-from pyramid_rpc.mapper import ViewMapperArgsInvalid
-from pyramid_rpc.util import combine
+from .compat import (
+    PY3,
+    is_nonstr_iter,
+    text_type,
+    xmlrpclib,
+)
+from .mapper import MapplyViewMapper
+from .mapper import ViewMapperArgsInvalid
+from .util import combine
 
 
 log = logging.getLogger(__name__)
@@ -62,11 +65,18 @@ def exception_view(exc, request):
         fault = XmlRpcApplicationError()
         log.exception('xml-rpc exception "%s"', exc)
 
-    xml = xmlrpclib.dumps(fault)
-    response = Response(xml)
-    response.content_type = 'text/xml'
-    response.content_length = len(xml)
+    xml = xmlrpclib.dumps(fault, methodresponse=True)
+    response = Response(content_type='text/xml')
+    _set_response_body(response, xml)
     return response
+
+
+if PY3: # pragma: no cover
+    def _set_response_body(response, result):
+        response.text = result
+else:
+    def _set_response_body(response, result):
+        response.body = result
 
 
 def make_response(request, result):
@@ -76,11 +86,8 @@ def make_response(request, result):
     if ct == response.default_content_type:
         response.content_type = 'text/xml'
 
-    response.body = (
-        xmlrpclib.dumps(
-            (result,), methodresponse=True
-        ).encode(response.charset)
-    )
+    xml = xmlrpclib.dumps((result,), methodresponse=True)
+    _set_response_body(response, xml)
     return response
 
 
