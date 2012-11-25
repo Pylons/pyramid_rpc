@@ -5,6 +5,7 @@ from pyramid import testing
 
 from webtest import TestApp
 
+from pyramid_rpc.compat import PY3
 from pyramid_rpc.compat import xmlrpclib
 
 class TestXMLRPCIntegration(unittest.TestCase):
@@ -16,8 +17,11 @@ class TestXMLRPCIntegration(unittest.TestCase):
         testing.tearDown()
 
     def _callFUT(self, app, method, params):
-        resp = app.post('/api/xmlrpc', content_type='text/xml',
-                        params=xmlrpclib.dumps(params, methodname=method))
+        if PY3: # pragma: no cover
+            xml = xmlrpclib.dumps(params, methodname=method).encode('utf-8')
+        else:
+            xml = xmlrpclib.dumps(params, methodname=method)
+        resp = app.post('/api/xmlrpc', content_type='text/xml', params=xml)
         self.assertEqual(resp.status_int, 200)
         self.assertEqual(resp.content_type, 'text/xml')
         return xmlrpclib.loads(resp.body)[0][0]
@@ -264,17 +268,17 @@ class TestXMLRPCIntegration(unittest.TestCase):
         self.assertEqual(resp, ['a', 'b', 'c'])
 
     def test_nonascii_request(self):
-        def view(request, a, b):
-            return {'a': a, 'b': b}
+        def view(request, a):
+            return a
         config = self.config
         config.include('pyramid_rpc.xmlrpc')
         config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc')
         config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
         app = config.make_wsgi_app()
         app = TestApp(app)
-        val = 'S\xc3\xa9bastien'.decode('utf-8')
-        resp = self._callFUT(app, 'dummy', (2, val))
-        self.assertEqual(resp, {'a': 2, 'b': val})
+        val = b'S\xc3\xa9bastien'.decode('utf-8')
+        resp = self._callFUT(app, 'dummy', (val,))
+        self.assertEqual(resp, val)
 
 
 class DummyDecorator(object):
