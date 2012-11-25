@@ -402,6 +402,19 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(dummy_renderer.called, False)
         self.assertEqual(dummy_renderer2.called, True)
 
+    def test_nonascii_request(self):
+        def view(request, a):
+            return a
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        val = b'S\xc3\xa9bastien'.decode('utf-8')
+        result = self._callFUT(app, 'dummy', [val])
+        self.assertEqual(result['result'], val)
+
 
 class TestGET(unittest.TestCase):
 
