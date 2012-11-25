@@ -50,7 +50,7 @@ docs_require = [
 ]
 
 setup(name='pyramid_rpc',
-      version='0.6dev',
+      version='0.5.1',
       description='RPC support for the Pyramid web framework',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

@@ -1,3 +1,13 @@
+0.5.1 (2012-11-25)
+==================
+
+Bug Fixes
+---------
+
+- XML-RPC
+
+  + Fix an issue generating responses containing non-ascii characters.
+
 0.5 (2012-11-08)
 ================
 
