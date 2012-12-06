@@ -1,3 +1,21 @@
+next release
+============
+
+Features
+--------
+
+- XML-RPC
+
+  + Add support for ``_depth`` argument to
+    :func:`pyramid_rpc.xmlrpc.xmlrpc_method` to allow it to be used from
+    within another decorator.
+
+- JSON-RPC
+
+  + Add support for ``_depth`` argument to
+    :func:`pyramid_rpc.jsonrpc.jsonrpc_method` to allow it to be used from
+    within another decorator.
+
 0.5.1 (2012-11-25)
 ==================
 

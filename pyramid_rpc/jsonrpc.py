@@ -370,6 +370,11 @@ class jsonrpc_method(object):
     If ``method`` is not supplied, then the callable name will be used
     for the method name.
 
+    ``_depth`` may be specified when wrapping ``jsonrpc_method`` in another
+    decorator. The value should reflect how many stack frames are between
+    the wrapped target and ``jsonrpc_method``. Thus a decorator one level deep
+    would pass in ``_depth=1``.
+
     This is the lazy analog to the
     :func:`~pyramid_rpc.jsonrpc.add_jsonrpc_method`` and accepts all of
     the same arguments.
