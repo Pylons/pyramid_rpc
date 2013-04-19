@@ -10,7 +10,7 @@ JSON-RPC
 .. code-block:: python
 
     from pyramid.config import Configurator
-    from pyramic_rpc import jsonrpc_method
+    from pyramid_rpc import jsonrpc_method
 
     @jsonrpc_method(endpoint='api')
     def say_hello(request, name):
