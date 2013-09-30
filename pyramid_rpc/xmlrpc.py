@@ -274,12 +274,14 @@ class xmlrpc_method(object):
     def __call__(self, wrapped):
         kw = self.kw.copy()
         kw['method'] = self.method or wrapped.__name__
+        depth = kw.pop('_depth', 0)
 
         def callback(context, name, ob):
             config = context.config.with_package(info.module)
             config.add_xmlrpc_method(view=ob, **kw)
 
-        info = venusian.attach(wrapped, callback, category='pyramid')
+        info = venusian.attach(wrapped, callback, category='pyramid',
+                               depth=depth + 1)
         if info.scope == 'class':
             # ensure that attr is set if decorating a class method
             kw.setdefault('attr', wrapped.__name__)
