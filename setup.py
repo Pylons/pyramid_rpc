@@ -29,6 +29,7 @@ except:
     README = CHANGES = ''
 
 install_requires = [
+    'venusian>=1.0a7',
     'pyramid>=1.1',
 ]
 
