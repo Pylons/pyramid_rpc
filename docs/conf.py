@@ -12,7 +12,10 @@
 # All configuration values have a default value; values that are commented
 # out serve to show the default value.
 
-import sys, os, datetime
+import datetime
+import os
+import pkg_resources
+import sys
 
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
@@ -55,9 +58,9 @@ copyright = '%s, Ben Bangert <ben@groovie.org>' % datetime.datetime.now().year
 # other places throughout the built documents.
 #
 # The short X.Y version.
-version = '0.6'
+version = pkg_resources.get_distribution('pyramid_rpc').version
 # The full version, including alpha/beta/rc tags.
-release = '0.6dev'
+release = version
 
 # There are two options for replacing |today|: either, you set today to
 # some non-false value, then it is used:
