@@ -140,7 +140,7 @@ supports custom adapters.
     from pyramid.renderers import JSON
 
     json_renderer = JSON()
-    json_renderer.add_adapter(datetime.datetime, lambda v: v.isoformat())
+    json_renderer.add_adapter(datetime.datetime, lambda v, request: v.isoformat())
     config.add_renderer('myjson', json_renderer)
 
     config.add_jsonrpc_endpoint('api', '/api', default_renderer='myjson')
