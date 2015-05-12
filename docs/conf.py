@@ -15,6 +15,7 @@
 import datetime
 import os
 import pkg_resources
+import pylons_sphinx_themes
 import sys
 
 # If your extensions are in another directory, add it here. If the directory
@@ -97,30 +98,9 @@ add_module_names = False
 # Options for HTML output
 # -----------------------
 
-# Add and use Pylons theme
-if 'sphinx-build' in ' '.join(sys.argv): # protect against dumb importers
-    from subprocess import call, Popen, PIPE
-
-    p = Popen('which git', shell=True, stdout=PIPE)
-    git = p.stdout.read().strip()
-    cwd = os.getcwd()
-    _themes = os.path.join(cwd, '_themes')
-
-    if not os.path.isdir(_themes):
-        call([git, 'clone', 'git://github.com/Pylons/pylons_sphinx_theme.git',
-             '_themes'])
-    else:
-        os.chdir(_themes)
-        call([git, 'checkout', 'master'])
-        call([git, 'pull'])
-        os.chdir(cwd)
-
-    sys.path.append(os.path.abspath('_themes'))
-
-html_theme_path = ['_themes']
 html_theme = 'pyramid'
+html_theme_path = pylons_sphinx_themes.get_html_themes_path()
 html_theme_options = dict(github_url='https://github.com/Pylons/pyramid_rpc')
-
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
