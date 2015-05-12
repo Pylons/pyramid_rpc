@@ -47,6 +47,7 @@ testing_extras = tests_require + [
 ]
 
 docs_require = [
+    'pylons-sphinx-themes >= 0.3',
     'Sphinx',
 ]
 
