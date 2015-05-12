@@ -37,11 +37,6 @@ tests_require = install_requires + [
     'WebTest',
 ]
 
-if not PY3:
-    tests_require.extend([
-        'pyamf',
-    ])
-
 testing_extras = tests_require + [
     'nose',
 ]
@@ -82,7 +77,7 @@ setup(name='pyramid_rpc',
       extras_require = {
           'testing':testing_extras,
           'docs':docs_require,
-          'amf':['pyamf'],
+          'amf':['pyamf<=0.6.99'],
           },
       test_suite="pyramid_rpc.tests",
       )

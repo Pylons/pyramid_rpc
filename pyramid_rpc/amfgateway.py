@@ -66,9 +66,7 @@ class PyramidGateway(gateway.BaseGateway):
             if self.debug:
                 response += "\n\nTraceback:\n\n%s" % gateway.format_exception()
             return HTTPBadRequest(detail=response)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             if self.logger:
                 self.logger.exception('Unexpected error decoding AMF request')
 
@@ -85,9 +83,7 @@ class PyramidGateway(gateway.BaseGateway):
         # Process the request
         try:
             response = self.getResponse(request, amf_request)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             if self.logger:
                 self.logger.exception('Error processing AMF request')
 
@@ -106,7 +102,7 @@ class PyramidGateway(gateway.BaseGateway):
         try:
             stream = remoting.encode(response, strict=self.strict,
                 timezone_offset=timezone_offset)
-        except:
+        except Exception:
             if self.logger:
                 self.logger.exception('Error encoding AMF request')
 
