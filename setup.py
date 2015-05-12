@@ -38,6 +38,7 @@ tests_require = install_requires + [
 ]
 
 testing_extras = tests_require + [
+    'coverage',
     'nose',
 ]
 
