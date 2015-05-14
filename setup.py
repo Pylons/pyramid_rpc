@@ -30,7 +30,7 @@ except:
 
 install_requires = [
     'venusian>=1.0a7',
-    'pyramid>=1.1',
+    'pyramid>=1.4',
 ]
 
 tests_require = install_requires + [

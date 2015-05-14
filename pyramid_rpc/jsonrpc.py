@@ -297,11 +297,7 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
 
     config.registry.jsonrpc_endpoints[name] = endpoint
 
-    if hasattr(config, 'add_route_predicate'):
-        kw['jsonrpc_endpoint'] = True
-    else: # pragma: no cover (pyramid < 1.4)
-        predicates = kw.setdefault('custom_predicates', [])
-        predicates.append(EndpointPredicate(True, config))
+    kw['jsonrpc_endpoint'] = True
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
                     permission=NO_PERMISSION_REQUIRED)
@@ -360,11 +356,7 @@ def add_jsonrpc_method(config, view, **kw):
         renderer = endpoint.default_renderer
     kw['renderer'] = null_renderer
 
-    if hasattr(config, 'add_view_predicate'):
-        kw['jsonrpc_method'] = method
-    else: # pragma: no cover (pyramid < 1.4)
-        predicates = kw.setdefault('custom_predicates', [])
-        predicates.append(MethodPredicate(method, config))
+    kw['jsonrpc_method'] = method
 
     rpc_decorator = jsonrpc_view(renderer)
     decorator = kw.get('decorator', None)
@@ -441,10 +433,8 @@ def includeme(config):
     if not hasattr(config.registry, 'jsonrpc_endpoints'):
         config.registry.jsonrpc_endpoints = {}
 
-    if hasattr(config, 'add_view_predicate'):
-        config.add_view_predicate('jsonrpc_method', MethodPredicate)
-    if hasattr(config, 'add_route_predicate'):
-        config.add_route_predicate('jsonrpc_endpoint', EndpointPredicate)
+    config.add_view_predicate('jsonrpc_method', MethodPredicate)
+    config.add_route_predicate('jsonrpc_endpoint', EndpointPredicate)
 
     config.add_renderer(DEFAULT_RENDERER, jsonrpc_renderer)
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)

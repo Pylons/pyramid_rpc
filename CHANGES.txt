@@ -1,3 +1,18 @@
+unreleased
+==========
+
+- Pyramid version compatibility
+
+  + pyramid_rpc now requires Pyramid >= 1.4. (Version 0.5.3 will run on
+    Pyramid >= 1.2, but will not run on Pyramid 1.1.x despite what
+    setup.py indicates.)
+
+  + Removed pre-1.4 backwards compatibility for custom predicates.
+
+- Tox configuration
+
+  + Added Tox environments checking against older Pyramid versions.
+
 0.5.3 (2015-05-14)
 ==================
 
