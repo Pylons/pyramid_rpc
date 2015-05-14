@@ -1,3 +1,11 @@
+unreleased
+==================
+
+- XML-RPC, JSON-RPC
+
+  + Fix deprecation warnings on versions of Pyramid >= 1.4 due to the
+    usage of custom predicates.
+
 0.5.2 (2013-10-01)
 ==================
 
