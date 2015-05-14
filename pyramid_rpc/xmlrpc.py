@@ -106,26 +106,40 @@ class xmlrpc_view(object):
 
 
 class EndpointPredicate(object):
+    def __init__(self, val, config):
+        self.val = val
+
+    def text(self):
+        return 'jsonrpc endpoint = %s' % self.val
+
+    phash = text
+
     def __call__(self, info, request):
-        # find the endpoint info
-        key = info['route'].name
-        endpoint = request.registry.xmlrpc_endpoints[key]
+        if self.val:
+            # find the endpoint info
+            key = info['route'].name
+            endpoint = request.registry.xmlrpc_endpoints[key]
 
-        # parse the request body
-        setup_request(endpoint, request)
+            # parse the request body
+            setup_request(endpoint, request)
 
-        # update request with endpoint information
-        request.rpc_endpoint = endpoint
+            # update request with endpoint information
+            request.rpc_endpoint = endpoint
 
-        # Always return True so that even if it isn't a valid RPC it
-        # will fall through to the notfound_view which will still
-        # return a valid XML-RPC response.
-        return True
+            # Always return True so that even if it isn't a valid RPC it
+            # will fall through to the notfound_view which will still
+            # return a valid XML-RPC response.
+            return True
 
 
 class MethodPredicate(object):
-    def __init__(self, method):
-        self.method = method
+    def __init__(self, val, config):
+        self.method = val
+
+    def text(self):
+        return 'xmlrpc method = %s' % self.method
+
+    phash = text
 
     def __call__(self, context, request):
         return getattr(request, 'rpc_method') == self.method
@@ -175,8 +189,11 @@ def add_xmlrpc_endpoint(config, name, *args, **kw):
 
     config.registry.xmlrpc_endpoints[name] = endpoint
 
-    predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(EndpointPredicate())
+    if hasattr(config, 'add_route_predicate'):
+        kw['xmlrpc_endpoint'] = True
+    else: # pragma: no cover (pyramid < 1.4)
+        predicates = kw.setdefault('custom_predicates', [])
+        predicates.append(EndpointPredicate(True, config))
 
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
@@ -242,8 +259,11 @@ def add_xmlrpc_method(config, view, **kw):
         decorator = combine(*decorators)
     kw['decorator'] = decorator
 
-    predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(MethodPredicate(method))
+    if hasattr(config, 'add_view_predicate'):
+        kw['xmlrpc_method'] = method
+    else: # pragma: no cover (pyramid < 1.4)
+        predicates = kw.setdefault('custom_predicates', [])
+        predicates.append(MethodPredicate(method, config))
 
     kw['renderer'] = null_renderer
     config.add_view(view, route_name=endpoint_name, **kw)
@@ -307,6 +327,11 @@ def includeme(config):
     """
     if not hasattr(config.registry, 'xmlrpc_endpoints'):
         config.registry.xmlrpc_endpoints = {}
+
+    if hasattr(config, 'add_view_predicate'):
+        config.add_view_predicate('xmlrpc_method', MethodPredicate)
+    if hasattr(config, 'add_route_predicate'):
+        config.add_route_predicate('xmlrpc_endpoint', EndpointPredicate)
 
     config.add_directive('add_xmlrpc_endpoint', add_xmlrpc_endpoint)
     config.add_directive('add_xmlrpc_method', add_xmlrpc_method)

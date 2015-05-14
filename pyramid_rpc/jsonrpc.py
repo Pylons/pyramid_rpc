@@ -18,6 +18,7 @@ from pyramid_rpc.util import combine
 
 log = logging.getLogger(__name__)
 
+DEFAULT_RENDERER = 'pyramid_rpc:jsonrpc'
 
 _marker = object()
 
@@ -150,14 +151,17 @@ class jsonrpc_view(object):
     JSON-RPC Response object.
 
     """
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
+    def __init__(self, renderer=DEFAULT_RENDERER):
+        self.renderer = renderer
 
-    def __call__(self, context, request):
-        result = self.wrapped(context, request)
-        if not request.is_response(result):
-            result = make_response(request, result)
-        return result
+    def __call__(self, wrapped):
+        def wrapper(context, request):
+            request.rpc_renderer = self.renderer
+            result = wrapped(context, request)
+            if not request.is_response(result):
+                result = make_response(request, result)
+            return result
+        return wrapper
 
 
 def parse_request_GET(request):
@@ -212,36 +216,44 @@ def setup_request(endpoint, request):
               request.rpc_id, request.rpc_method)
 
 
-DEFAULT_RENDERER = 'pyramid_rpc:jsonrpc'
-
-
 class EndpointPredicate(object):
+    def __init__(self, val, config):
+        self.val = val
+
+    def text(self):
+        return 'jsonrpc endpoint = %s' % self.val
+
+    phash = text
+
     def __call__(self, info, request):
-        # find the endpoint info
-        key = info['route'].name
-        endpoint = request.registry.jsonrpc_endpoints[key]
+        if self.val:
+            # find the endpoint info
+            key = info['route'].name
+            endpoint = request.registry.jsonrpc_endpoints[key]
 
-        # potentially setup either rpc v1 or v2 from the parsed body
-        setup_request(endpoint, request)
+            # potentially setup either rpc v1 or v2 from the parsed body
+            setup_request(endpoint, request)
 
-        # update request with endpoint information
-        request.rpc_endpoint = endpoint
+            # update request with endpoint information
+            request.rpc_endpoint = endpoint
 
-        # Always return True so that even if it isn't a valid RPC it
-        # will fall through to the notfound_view which will still
-        # return a valid JSON-RPC response.
-        return True
+            # Always return True so that even if it isn't a valid RPC it
+            # will fall through to the notfound_view which will still
+            # return a valid JSON-RPC response.
+            return True
 
 
 class MethodPredicate(object):
-    def __init__(self, method, renderer):
-        self.method = method
-        self.renderer = renderer
+    def __init__(self, val, config):
+        self.method = val
+
+    def text(self):
+        return 'jsonrpc method = %s' % self.method
+
+    phash = text
 
     def __call__(self, context, request):
-        if getattr(request, 'rpc_method') == self.method:
-            request.rpc_renderer = self.renderer
-            return True
+        return getattr(request, 'rpc_method') == self.method
 
 
 class Endpoint(object):
@@ -285,8 +297,11 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
 
     config.registry.jsonrpc_endpoints[name] = endpoint
 
-    predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(EndpointPredicate())
+    if hasattr(config, 'add_route_predicate'):
+        kw['jsonrpc_endpoint'] = True
+    else: # pragma: no cover (pyramid < 1.4)
+        predicates = kw.setdefault('custom_predicates', [])
+        predicates.append(EndpointPredicate(True, config))
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
                     permission=NO_PERMISSION_REQUIRED)
@@ -345,18 +360,22 @@ def add_jsonrpc_method(config, view, **kw):
         renderer = endpoint.default_renderer
     kw['renderer'] = null_renderer
 
-    predicates = kw.setdefault('custom_predicates', [])
-    predicates.append(MethodPredicate(method, renderer=renderer))
+    if hasattr(config, 'add_view_predicate'):
+        kw['jsonrpc_method'] = method
+    else: # pragma: no cover (pyramid < 1.4)
+        predicates = kw.setdefault('custom_predicates', [])
+        predicates.append(MethodPredicate(method, config))
 
+    rpc_decorator = jsonrpc_view(renderer)
     decorator = kw.get('decorator', None)
     if decorator is None:
-        decorator = jsonrpc_view
+        decorator = rpc_decorator
     else:
         if not is_nonstr_iter(decorator):
             decorator = (decorator,)
         # we want to apply the view_wrapper first, then the other decorators
         # and combine() reverses the order, so ours goes last
-        decorators = list(decorator) + [jsonrpc_view]
+        decorators = list(decorator) + [rpc_decorator]
         decorator = combine(*decorators)
     kw['decorator'] = decorator
 
@@ -421,6 +440,11 @@ def includeme(config):
     """
     if not hasattr(config.registry, 'jsonrpc_endpoints'):
         config.registry.jsonrpc_endpoints = {}
+
+    if hasattr(config, 'add_view_predicate'):
+        config.add_view_predicate('jsonrpc_method', MethodPredicate)
+    if hasattr(config, 'add_route_predicate'):
+        config.add_route_predicate('jsonrpc_endpoint', EndpointPredicate)
 
     config.add_renderer(DEFAULT_RENDERER, jsonrpc_renderer)
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)
