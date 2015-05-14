@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.renderers import null_renderer
 from pyramid.renderers import render
+from pyramid.request import Request
 from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
@@ -187,10 +188,18 @@ def parse_request_POST(request):
     except ValueError:
         raise JsonRpcParseError
 
-    request.rpc_id = body.get('id')
-    request.rpc_args = body.get('params', ())
-    request.rpc_method = body.get('method')
-    request.rpc_version = body.get('jsonrpc')
+    try:
+        batched = body[:]
+    except TypeError:
+        batched = None
+
+    if batched is not None:
+        request.batched_rpc_requests = batched
+    else:
+        request.rpc_id = body.get('id')
+        request.rpc_args = body.get('params', ())
+        request.rpc_method = body.get('method')
+        request.rpc_version = body.get('jsonrpc')
 
 
 def setup_request(endpoint, request):
@@ -202,6 +211,11 @@ def setup_request(endpoint, request):
     else:
         log.debug('unsupported request method "%s"', request.method)
         raise JsonRpcRequestInvalid
+
+    if hasattr(request, 'batched_rpc_requests'):
+        log.debug('handling batched rpc request')
+        # the checks below will look at the subrequests
+        return
 
     if request.rpc_version != '2.0':
         log.debug('id:%s invalid rpc version %s',
@@ -256,6 +270,48 @@ class MethodPredicate(object):
         return getattr(request, 'rpc_method') == self.method
 
 
+class BatchedRequestPredicate(object):
+    def __init__(self, val, config):
+        self.val = val
+
+    def text(self):
+        return 'jsonrpc batched request = %s' % self.val
+
+    phash = text
+
+    def __call__(self, context, request):
+        if self.val:
+            return hasattr(request, 'batched_rpc_requests')
+
+
+def batched_request_view(request):
+    json_response = []
+    response = request.response
+    for rpc_request in request.batched_rpc_requests:
+        body = json.dumps(rpc_request).encode(request.charset)
+        subrequest = Request.blank(path=request.path,
+                                   environ=request.environ,
+                                   base_url=request.application_url,
+                                   headers=request.headers,
+                                   POST=body,
+                                   charset=request.charset)
+        subresponse = request.invoke_subrequest(subrequest, use_tweens=True)
+        if subresponse.json_body != '':
+            json_response.append(subresponse.json_body)
+    if json_response:
+        # use charset and content-type from last subresponse
+        response.charset = subresponse.charset
+        response.content_type = subresponse.content_type
+        # will automatically be encoded
+        response.json_body = json_response
+    else:
+        # if we would send an empty list, instead send nothing
+        # per JSON-RPC: http://www.jsonrpc.org/specification#batch
+        response.content_type = 'text/plain'
+        response.body = b''
+    return response
+
+
 class Endpoint(object):
     def __init__(self, name, default_mapper, default_renderer):
         self.name = name
@@ -299,6 +355,12 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
 
     kw['jsonrpc_endpoint'] = True
     config.add_route(name, *args, **kw)
+
+    kw = {}
+    kw['jsonrpc_batched'] = True
+    kw['renderer'] = null_renderer
+    config.add_view(batched_request_view, route_name=name,
+                    permission=NO_PERMISSION_REQUIRED, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
                     permission=NO_PERMISSION_REQUIRED)
 
@@ -434,6 +496,7 @@ def includeme(config):
         config.registry.jsonrpc_endpoints = {}
 
     config.add_view_predicate('jsonrpc_method', MethodPredicate)
+    config.add_view_predicate('jsonrpc_batched', BatchedRequestPredicate)
     config.add_route_predicate('jsonrpc_endpoint', EndpointPredicate)
 
     config.add_renderer(DEFAULT_RENDERER, jsonrpc_renderer)

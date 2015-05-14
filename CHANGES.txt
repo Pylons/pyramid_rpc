@@ -13,6 +13,11 @@ unreleased
 
   + Added Tox environments checking against older Pyramid versions.
 
+- JSON-RPC
+
+  + Added support for batched JSON-RPC requests (on POST requests only)
+    See https://github.com/Pylons/pyramid_rpc/pull/35
+
 0.5.3 (2015-05-14)
 ==================
 

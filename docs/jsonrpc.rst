@@ -122,6 +122,18 @@ the ``method`` parameter:
 Because methods are a thin layer around Pyramid's views, it is possible to add
 extra view predicates to the method, as well as ``permission`` requirements.
 
+Handling JSON-RPC Batch Requests
+--------------------------------
+
+Batch requests are handled automatically. A JSON-RPC batch request consists
+of an array of regular JSON-RPC requests; the response will consist of an
+array of the responses.
+
+If there are no responses (which happens only when the request consisted
+entirely of notifications, to which there can be no response), the batch
+response is an empty body. This is not a valid JSON value, but the JSON-RPC
+spec does not provide for any other response in this situation.
+
 .. _jsonrpc_custom_renderers:
 
 Custom Renderers
@@ -174,6 +186,9 @@ example, to limit requests to only ``POST`` requests:
 .. code-block:: python
 
    config.add_jsonrpc_endpoint('api', '/api', request_method='POST')
+
+Batch requests are not supported via HTTP GET; there is no way to send multiple
+requests with the HTTP GET semantics.
 
 Handling JSONP Requests
 -----------------------
