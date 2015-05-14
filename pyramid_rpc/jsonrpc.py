@@ -219,7 +219,7 @@ class EndpointPredicate(object):
     def __call__(self, info, request):
         # find the endpoint info
         key = info['route'].name
-        endpoint = request.registry.rpc_endpoints[key]
+        endpoint = request.registry.jsonrpc_endpoints[key]
 
         # potentially setup either rpc v1 or v2 from the parsed body
         setup_request(endpoint, request)
@@ -283,7 +283,7 @@ def add_jsonrpc_endpoint(config, name, *args, **kw):
         default_renderer=default_renderer,
     )
 
-    config.registry.rpc_endpoints[name] = endpoint
+    config.registry.jsonrpc_endpoints[name] = endpoint
 
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(EndpointPredicate())
@@ -322,7 +322,7 @@ def add_jsonrpc_method(config, view, **kw):
             'Cannot register a JSON-RPC endpoint without specifying the '
             'name of the endpoint.')
 
-    endpoint = config.registry.rpc_endpoints.get(endpoint_name)
+    endpoint = config.registry.jsonrpc_endpoints.get(endpoint_name)
     if endpoint is None:
         raise ConfigurationError(
             'Could not find an endpoint with the name "%s".' % endpoint_name)
@@ -419,8 +419,8 @@ def includeme(config):
     - ``add_jsonrpc_method``: Add a method to a JSON-RPC endpoint.
 
     """
-    if not hasattr(config.registry, 'rpc_endpoints'):
-        config.registry.rpc_endpoints = {}
+    if not hasattr(config.registry, 'jsonrpc_endpoints'):
+        config.registry.jsonrpc_endpoints = {}
 
     config.add_renderer(DEFAULT_RENDERER, jsonrpc_renderer)
     config.add_directive('add_jsonrpc_endpoint', add_jsonrpc_endpoint)

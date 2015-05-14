@@ -10,7 +10,6 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from .compat import (
     PY3,
     is_nonstr_iter,
-    text_type,
     xmlrpclib,
 )
 from .mapper import MapplyViewMapper
@@ -110,7 +109,7 @@ class EndpointPredicate(object):
     def __call__(self, info, request):
         # find the endpoint info
         key = info['route'].name
-        endpoint = request.registry.rpc_endpoints[key]
+        endpoint = request.registry.xmlrpc_endpoints[key]
 
         # parse the request body
         setup_request(endpoint, request)
@@ -174,14 +173,14 @@ def add_xmlrpc_endpoint(config, name, *args, **kw):
         default_mapper=default_mapper,
     )
 
-    config.registry.rpc_endpoints[name] = endpoint
+    config.registry.xmlrpc_endpoints[name] = endpoint
 
     predicates = kw.setdefault('custom_predicates', [])
     predicates.append(EndpointPredicate())
 
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
-                  permission=NO_PERMISSION_REQUIRED)
+                    permission=NO_PERMISSION_REQUIRED)
 
 
 def add_xmlrpc_method(config, view, **kw):
@@ -214,7 +213,7 @@ def add_xmlrpc_method(config, view, **kw):
             'Cannot register a XML-RPC endpoint without specifying the '
             'name of the endpoint.')
 
-    endpoint = config.registry.rpc_endpoints.get(endpoint_name)
+    endpoint = config.registry.xmlrpc_endpoints.get(endpoint_name)
     if endpoint is None:
         raise ConfigurationError(
             'Could not find an endpoint with the name "%s".' % endpoint_name)
@@ -306,8 +305,8 @@ def includeme(config):
     - ``add_xmlrpc_method``: Add a method to a XML-RPC endpoint.
 
     """
-    if not hasattr(config.registry, 'rpc_endpoints'):
-        config.registry.rpc_endpoints = {}
+    if not hasattr(config.registry, 'xmlrpc_endpoints'):
+        config.registry.xmlrpc_endpoints = {}
 
     config.add_directive('add_xmlrpc_endpoint', add_xmlrpc_endpoint)
     config.add_directive('add_xmlrpc_method', add_xmlrpc_method)
