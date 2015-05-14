@@ -102,7 +102,7 @@ class PyramidGateway(gateway.BaseGateway):
         try:
             stream = remoting.encode(response, strict=self.strict,
                 timezone_offset=timezone_offset)
-        except Exception:
+        except:
             if self.logger:
                 self.logger.exception('Error encoding AMF request')
 
