@@ -111,6 +111,28 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result = self._callFUT(app, 'dummy', [2, 3])
         self.assertEqual(result['result'], 2)
 
+    def test_it_with_batched_requests(self):
+        def view(request, a, b):
+            return [a, b]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        body = [
+            {'id': 1, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [2, 3]},
+            {'id': 2, 'jsonrpc': '2.0', 'method': 'dummy', 'params': {'a': 3, 'b': 2}},
+        ]
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                        params=json.dumps(body))
+        self.assertEqual(resp.status_int, 200)
+        result = resp.json
+        result1 = [r for r in result if r['id'] == 1][0]
+        result2 = [r for r in result if r['id'] == 2][0]
+        self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': [2, 3]})
+        self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [3, 2]})
+
     def test_it_with_no_version(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
@@ -140,6 +162,25 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         result = self._callFUT(app, 'dummy', [2, 3], id=None)
         self.assertEqual(result, '')
+
+    def test_it_with_batched_notifications(self):
+        # a notification is a request with no id
+        def view(request, a, b):
+            return [a, b]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        body = [
+            {'jsonrpc': '2.0', 'method': 'dummy', 'params': [2, 3]},
+            {'jsonrpc': '2.0', 'method': 'dummy', 'params': {'a': 3, 'b': 2}},
+        ]
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                        params=json.dumps(body))
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, b'')
 
     def test_it_with_no_params(self):
         def view(request):

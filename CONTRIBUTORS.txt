@@ -102,3 +102,5 @@ Contributors
 - Michael Merickel, 1/30/2011
 
 - Atsushi Odagiri, 5/9/2011
+
+- Jon Rosebaugh, 5/14/2015

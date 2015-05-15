@@ -3,7 +3,5 @@ pyramid_rpc README
 
 - Support system.* XML-RPC API Methods and introspection
 
-- Add support for batching requests via tweens.
-
 - Add support for traversal via '{rpc_method}' pattern to allow
   fine-grained security based on the rpc method or possible params.
