@@ -267,6 +267,42 @@ class TestXMLRPCIntegration(unittest.TestCase):
         resp = self._callFUT(app, 'dummy', ('a', 'b', 'c'))
         self.assertEqual(resp, ['a', 'b', 'c'])
 
+    def test_it_with_default_renderer(self):
+        def view(request, a, b, c):
+            return 'bar'
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        dummy_renderer = DummyRenderer(('foo',))
+        config.add_renderer('xmlrpc', dummy_renderer)
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc',
+                                   default_renderer='xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ('a', 'b', 'c'))
+        self.assertEqual(resp, 'foo')
+        self.assertEqual(dummy_renderer.called, True)
+
+    def test_override_default_renderer(self):
+        def view(request):
+            return 'bar'
+        config = self.config
+        config.include('pyramid_rpc.xmlrpc')
+        dummy_renderer = DummyRenderer(('foo',))
+        dummy_renderer2 = DummyRenderer(('baz',))
+        config.add_renderer('xmlrpc', dummy_renderer)
+        config.add_renderer('xmlrpc2', dummy_renderer2)
+        config.add_xmlrpc_endpoint('rpc', '/api/xmlrpc',
+                                   default_renderer='xmlrpc')
+        config.add_xmlrpc_method(view, endpoint='rpc', method='dummy',
+                                 renderer='xmlrpc2')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        resp = self._callFUT(app, 'dummy', ())
+        self.assertEqual(resp, 'baz')
+        self.assertEqual(dummy_renderer.called, False)
+        self.assertEqual(dummy_renderer2.called, True)
+
     def test_nonascii_request(self):
         def view(request, a):
             return a
@@ -289,3 +325,16 @@ class DummyDecorator(object):
             self.called = True
             return view(context, request)
         return wrapper
+
+class DummyRenderer(object):
+    called = False
+
+    def __init__(self, result):
+        self.result = result
+
+    def __call__(self, info):
+        def _render(value, system):
+            self.called = True
+            system['request'].response.content_type = 'text/xml'
+            return xmlrpclib.dumps(self.result, methodresponse=True)
+        return _render
