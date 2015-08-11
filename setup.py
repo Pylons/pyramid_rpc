@@ -24,9 +24,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 try:
     README = open(os.path.join(here, 'README.rst')).read()
-    CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 except:
-    README = CHANGES = ''
+    README = ''
 
 install_requires = [
     'venusian>=1.0a7',
@@ -50,7 +49,7 @@ docs_require = [
 setup(name='pyramid_rpc',
       version='0.6.1',
       description='RPC support for the Pyramid web framework',
-      long_description=README + '\n\n' +  CHANGES,
+      long_description=README,
       classifiers=[
           "Intended Audience :: Developers",
           "Programming Language :: Python",
@@ -75,10 +74,10 @@ setup(name='pyramid_rpc',
       zip_safe=False,
       tests_require=tests_require,
       install_requires=install_requires,
-      extras_require = {
-          'testing':testing_extras,
-          'docs':docs_require,
-          'amf':['pyamf<=0.6.99'],
-          },
+      extras_require={
+          'testing': testing_extras,
+          'docs': docs_require,
+          'amf': ['pyamf<=0.6.99'],
+      },
       test_suite="pyramid_rpc.tests",
       )

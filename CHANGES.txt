@@ -1,3 +1,12 @@
+0.7 (2015-08-11)
+================
+
+- XML-RPC
+
+  + Add support for overriding the renderer with extra options via the
+    new ``renderer`` option on ``add_xmlrpc_method`` and the
+    ``default_renderer`` option on ``add_xmlrpc_endpoint``.
+
 0.6.1 (2015-05-15)
 ==================
 
