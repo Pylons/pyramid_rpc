@@ -104,3 +104,5 @@ Contributors
 - Atsushi Odagiri, 5/9/2011
 
 - Jon Rosebaugh, 5/14/2015
+
+- Donald Stufft, 8/11/2015
