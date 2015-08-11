@@ -112,14 +112,15 @@ changed in Pyramid. See the `Pyramid Renderers
 chapter for extra details.
 
 In addition, the built in renderer allows configuration by passing keyword
-arguments to it. As an example, let's update the renderer to allow marshalling
-``None`` objects.
+arguments to it. As an example, let's update an :term:`endpoint` to allow
+marshalling ``None`` objects.
 
 .. code-block:: python
 
     from pyramid_rpc.xmlrpc import XMLRPCRenderer
 
-    config.add_renderer("xmlrpc", XMLRPCRenderer(allow_none=True))
+    config.add_renderer('myxmlrpc', XMLRPCRenderer(allow_none=True))
+    config.add_xmlrpc_endpoint('api', '/api', default_renderer='myxmlrpc')
 
 
 View Mappers

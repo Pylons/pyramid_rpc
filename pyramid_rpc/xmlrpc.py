@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 _marker = object()
 
 
+DEFAULT_RENDERER = "xmlrpc"
+
+
 class XmlRpcError(xmlrpclib.Fault):
     faultCode = None
     faultString = None
@@ -128,9 +131,10 @@ class MethodPredicate(object):
 
 
 class Endpoint(object):
-    def __init__(self, name, default_mapper):
+    def __init__(self, name, default_mapper, default_renderer):
         self.name = name
         self.default_mapper = default_mapper
+        self.default_renderer = default_renderer
 
 
 def setup_request(endpoint, request):
@@ -163,10 +167,12 @@ def add_xmlrpc_endpoint(config, name, *args, **kw):
 
     """
     default_mapper = kw.pop('default_mapper', MapplyViewMapper)
+    default_renderer = kw.pop('default_renderer', DEFAULT_RENDERER)
 
     endpoint = Endpoint(
         name,
         default_mapper=default_mapper,
+        default_renderer=default_renderer,
     )
 
     config.registry.xmlrpc_endpoints[name] = endpoint
@@ -179,7 +185,8 @@ def add_xmlrpc_endpoint(config, name, *args, **kw):
 
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
-                    permission=NO_PERMISSION_REQUIRED, renderer="xmlrpc")
+                    permission=NO_PERMISSION_REQUIRED,
+                    renderer=endpoint.default_renderer)
 
 
 def add_xmlrpc_method(config, view, **kw):
@@ -229,13 +236,18 @@ def add_xmlrpc_method(config, view, **kw):
         mapper = endpoint.default_mapper
     kw['mapper'] = mapper
 
+    renderer = kw.pop('renderer', _marker)
+    if renderer is _marker:
+        # Only override renderer if not supplied
+        renderer = endpoint.default_renderer
+    kw['renderer'] = renderer
+
     if hasattr(config, 'add_view_predicate'):
         kw['xmlrpc_method'] = method
     else: # pragma: no cover (pyramid < 1.4)
         predicates = kw.setdefault('custom_predicates', [])
         predicates.append(MethodPredicate(method, config))
 
-    kw.setdefault('renderer', 'xmlrpc')
     config.add_view(view, route_name=endpoint_name, **kw)
 
 
@@ -305,6 +317,7 @@ def includeme(config):
 
     config.add_directive('add_xmlrpc_endpoint', add_xmlrpc_endpoint)
     config.add_directive('add_xmlrpc_method', add_xmlrpc_method)
-    config.add_renderer(name='xmlrpc', factory=XMLRPCRenderer())
+    config.add_renderer(name=DEFAULT_RENDERER, factory=XMLRPCRenderer())
     config.add_view(exception_view, context=xmlrpclib.Fault,
-                    permission=NO_PERMISSION_REQUIRED, renderer="xmlrpc")
+                    permission=NO_PERMISSION_REQUIRED,
+                    renderer=DEFAULT_RENDERER)
