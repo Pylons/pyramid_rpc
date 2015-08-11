@@ -1,7 +1,7 @@
 .. _xmlrpc:
 
 =======
-XML-RPC 
+XML-RPC
 =======
 
 XML-RPC allows you to expose one or more methods at a particular URL.
@@ -102,6 +102,26 @@ the ``method`` parameter:
 Because methods are a thin layer around Pyramid's views, it is possible to add
 extra view predicates to the method, as well as ``permission`` requirements.
 
+Custom Renderers
+----------------
+
+By default, responses are rendered using the Python standard library's
+:func:`xmlrpclib.dumps`. This can be changed the same way any renderer is
+changed in Pyramid. See the `Pyramid Renderers
+<http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/renderers.html>`_
+chapter for extra details.
+
+In addition, the built in renderer allows configuration by passing keyword
+arguments to it. As an example, let's update the renderer to allow marshalling
+``None`` objects.
+
+.. code-block:: python
+
+    from pyramid_rpc.xmlrpc import XMLRPCRenderer
+
+    config.add_renderer("xmlrpc", XMLRPCRenderer(allow_none=True))
+
+
 View Mappers
 ------------
 
@@ -114,6 +134,7 @@ This default view mapper may be overridden by setting the
 ``default_mapper`` option on :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_endpoint`
 or the ``mapper`` option when using :func:`~pyramid_rpc.xmlrpc.xmlrpc_method`
 or :func:`~pyramid_rpc.xmlrpc.add_xmlrpc_method`.
+
 
 Call Example
 ============

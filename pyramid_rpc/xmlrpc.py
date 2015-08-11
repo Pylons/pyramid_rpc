@@ -3,8 +3,6 @@ import logging
 import venusian
 from pyramid.exceptions import ConfigurationError
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.renderers import null_renderer
-from pyramid.response import Response
 from pyramid.security import NO_PERMISSION_REQUIRED
 
 from .compat import (
@@ -51,6 +49,28 @@ class XmlRpcParseError(XmlRpcError):
     faultString = 'parse error; not well formed'
 
 
+class XMLRPCRenderer:
+    def __init__(self, **kw):
+        self.kw = kw
+
+    def __call__(self, info):
+        def _render(value, system):
+            request = system.get('request')
+            if request is not None:
+                response = request.response
+                ct = response.content_type
+                if ct == response.default_content_type:
+                    response.content_type = 'text/xml'
+
+            if isinstance(value, xmlrpclib.Fault):
+                obj = value
+            else:
+                obj = (value,)
+
+            return xmlrpclib.dumps(obj, methodresponse=True, **self.kw)
+        return _render
+
+
 def exception_view(exc, request):
     if isinstance(exc, xmlrpclib.Fault):
         fault = exc
@@ -64,45 +84,7 @@ def exception_view(exc, request):
         fault = XmlRpcApplicationError()
         log.exception('xml-rpc exception "%s"', exc)
 
-    xml = xmlrpclib.dumps(fault, methodresponse=True)
-    response = Response(content_type='text/xml')
-    _set_response_body(response, xml)
-    return response
-
-
-if PY3: # pragma: no cover
-    def _set_response_body(response, result):
-        response.text = result
-else:
-    def _set_response_body(response, result):
-        response.body = result
-
-
-def make_response(request, result):
-    response = request.response
-
-    ct = response.content_type
-    if ct == response.default_content_type:
-        response.content_type = 'text/xml'
-
-    xml = xmlrpclib.dumps((result,), methodresponse=True)
-    _set_response_body(response, xml)
-    return response
-
-
-class xmlrpc_view(object):
-    """ Decorator that wraps a view and converts the result into a valid
-    JSON-RPC Response object.
-
-    """
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
-
-    def __call__(self, context, request):
-        result = self.wrapped(context, request)
-        if not request.is_response(result):
-            result = make_response(request, result)
-        return result
+    return fault
 
 
 class EndpointPredicate(object):
@@ -197,7 +179,7 @@ def add_xmlrpc_endpoint(config, name, *args, **kw):
 
     config.add_route(name, *args, **kw)
     config.add_view(exception_view, route_name=name, context=Exception,
-                    permission=NO_PERMISSION_REQUIRED)
+                    permission=NO_PERMISSION_REQUIRED, renderer="xmlrpc")
 
 
 def add_xmlrpc_method(config, view, **kw):
@@ -247,25 +229,13 @@ def add_xmlrpc_method(config, view, **kw):
         mapper = endpoint.default_mapper
     kw['mapper'] = mapper
 
-    decorator = kw.get('decorator', None)
-    if decorator is None:
-        decorator = xmlrpc_view
-    else:
-        if not is_nonstr_iter(decorator):
-            decorator = (decorator,)
-        # we want to apply the view_wrapper first, then the other decorators
-        # and combine() reverses the order, so ours goes last
-        decorators = list(decorator) + [xmlrpc_view]
-        decorator = combine(*decorators)
-    kw['decorator'] = decorator
-
     if hasattr(config, 'add_view_predicate'):
         kw['xmlrpc_method'] = method
     else: # pragma: no cover (pyramid < 1.4)
         predicates = kw.setdefault('custom_predicates', [])
         predicates.append(MethodPredicate(method, config))
 
-    kw['renderer'] = null_renderer
+    kw.setdefault('renderer', 'xmlrpc')
     config.add_view(view, route_name=endpoint_name, **kw)
 
 
@@ -335,5 +305,6 @@ def includeme(config):
 
     config.add_directive('add_xmlrpc_endpoint', add_xmlrpc_endpoint)
     config.add_directive('add_xmlrpc_method', add_xmlrpc_method)
+    config.add_renderer(name='xmlrpc', factory=XMLRPCRenderer())
     config.add_view(exception_view, context=xmlrpclib.Fault,
-                    permission=NO_PERMISSION_REQUIRED)
+                    permission=NO_PERMISSION_REQUIRED, renderer="xmlrpc")
