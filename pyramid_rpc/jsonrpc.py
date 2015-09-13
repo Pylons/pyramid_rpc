@@ -267,7 +267,7 @@ class MethodPredicate(object):
     phash = text
 
     def __call__(self, context, request):
-        return getattr(request, 'rpc_method') == self.method
+        return getattr(request, 'rpc_method', None) == self.method
 
 
 class BatchedRequestPredicate(object):
