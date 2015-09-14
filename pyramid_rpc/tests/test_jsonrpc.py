@@ -133,6 +133,64 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': [2, 3]})
         self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [3, 2]})
 
+    def test_it_with_batched_requests_and_more_predicates(self):
+        # View ordering is determined partially by number of predicates
+        class MoodPredicate(object):
+            def __init__(self, val, config):
+                self.val = val
+
+            def text(self):
+                return 'mood predicate = %s' % self.val
+
+            phash = text
+
+            def __call__(self, context, request):
+                if isinstance(request.rpc_args, list):
+                    compare = request.rpc_args[0]
+                else:
+                    compare = request.rpc_args['mood']
+                return compare == self.val
+
+        class ColorPredicate(object):
+            def __init__(self, val, config):
+                self.val = val
+
+            def text(self):
+                return 'color predicate = %s' % self.val
+
+            phash = text
+
+            def __call__(self, context, request):
+                if isinstance(request.rpc_args, list):
+                    compare = request.rpc_args[1]
+                else:
+                    compare = request.rpc_args['color']
+                return compare == self.val
+
+        def view(request, mood, color):
+            return [mood, color]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_view_predicate('mood', MoodPredicate)
+        config.add_view_predicate('color', ColorPredicate)
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy', mood='happy', color='yellow')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy', mood='sad', color='blue')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        body = [
+            {'id': 1, 'jsonrpc': '2.0', 'method': 'dummy', 'params': ['happy', 'yellow']},
+            {'id': 2, 'jsonrpc': '2.0', 'method': 'dummy', 'params': {'color': 'blue', 'mood': 'sad'}},
+        ]
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                        params=json.dumps(body))
+        self.assertEqual(resp.status_int, 200)
+        result = resp.json
+        result1 = [r for r in result if r['id'] == 1][0]
+        result2 = [r for r in result if r['id'] == 2][0]
+        self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': ['happy', 'yellow']})
+        self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': ['sad', 'blue']})
+
     def test_it_with_no_version(self):
         config = self.config
         config.include('pyramid_rpc.jsonrpc')
