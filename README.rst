@@ -1,6 +1,13 @@
 RPC Services for Pyramid
 ========================
 
+.. image:: https://travis-ci.org/Pylons/pyramid_rpc.png?branch=master
+        :target: https://travis-ci.org/Pylons/pyramid_rpc
+
+.. image:: https://readthedocs.org/projects/pyramid_rpc/badge/?version=latest
+        :target: http://docs.pylonsproject.org/projects/pyramid-rpc/en/latest/
+        :alt: Latest Documentation Status
+
 ``pyramid_rpc`` is a package of RPC related add-on's to make it easier to
 create RPC services.
 
