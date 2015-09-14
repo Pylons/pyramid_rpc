@@ -5,7 +5,7 @@
 
   + Fix a bug in request handling that could occur if an unknown method was
     requested. It was generating an internal error instead of a notfound-like
-    response.
+    response. See https://github.com/Pylons/pyramid_rpc/pull/40
 
 0.7 (2015-08-11)
 ================
