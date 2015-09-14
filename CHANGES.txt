@@ -1,3 +1,12 @@
+0.7.1 (2015-09-14)
+==================
+
+- JSON-RPC
+
+  + Fix a bug in request handling that could occur if an unknown method was
+    requested. It was generating an internal error instead of a notfound-like
+    response.
+
 0.7 (2015-08-11)
 ================
 
