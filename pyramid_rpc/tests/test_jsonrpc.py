@@ -144,7 +144,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         app = TestApp(app)
         body = [
             {'id': 1, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [0]},
-            {'id': 2, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [range(100)]},
+            {'id': 2, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [[x for x in range(100)]]},
         ]
         json_body = json.dumps(body, separators=(',',':'))
         resp = app.post('/api/jsonrpc', content_type='application/json',
