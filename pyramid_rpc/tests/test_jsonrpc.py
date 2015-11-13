@@ -154,7 +154,7 @@ class TestJSONRPCIntegration(unittest.TestCase):
         result1 = [r for r in result if r['id'] == 1][0]
         result2 = [r for r in result if r['id'] == 2][0]
         self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': [0]})
-        self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [range(100)]})
+        self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [[x for x in range(100)]]})
 
     def test_it_with_batched_requests_and_more_predicates(self):
         # View ordering is determined partially by number of predicates
