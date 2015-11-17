@@ -133,6 +133,29 @@ class TestJSONRPCIntegration(unittest.TestCase):
         self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': [2, 3]})
         self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [3, 2]})
 
+    def test_it_with_batched_requests_and_content_length(self):
+        def view(request, a):
+            return [a]
+        config = self.config
+        config.include('pyramid_rpc.jsonrpc')
+        config.add_jsonrpc_endpoint('rpc', '/api/jsonrpc')
+        config.add_jsonrpc_method(view, endpoint='rpc', method='dummy')
+        app = config.make_wsgi_app()
+        app = TestApp(app)
+        body = [
+            {'id': 1, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [0]},
+            {'id': 2, 'jsonrpc': '2.0', 'method': 'dummy', 'params': [[x for x in range(100)]]},
+        ]
+        json_body = json.dumps(body, separators=(',',':'))
+        resp = app.post('/api/jsonrpc', content_type='application/json',
+                        headers={'Content-Length': str(len(json_body))}, params=json_body)
+        self.assertEqual(resp.status_int, 200)
+        result = resp.json
+        result1 = [r for r in result if r['id'] == 1][0]
+        result2 = [r for r in result if r['id'] == 2][0]
+        self.assertEqual(result1, {'id': 1, 'jsonrpc': '2.0', 'result': [0]})
+        self.assertEqual(result2, {'id': 2, 'jsonrpc': '2.0', 'result': [[x for x in range(100)]]})
+
     def test_it_with_batched_requests_and_more_predicates(self):
         # View ordering is determined partially by number of predicates
         class MoodPredicate(object):

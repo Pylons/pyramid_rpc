@@ -1,5 +1,6 @@
 import json
 import logging
+import copy
 
 import venusian
 from pyramid.exceptions import ConfigurationError
@@ -289,10 +290,12 @@ def batched_request_view(request):
     response = request.response
     for rpc_request in request.batched_rpc_requests:
         body = json.dumps(rpc_request).encode(request.charset)
+        subrequest_headers = copy.copy(request.headers)
+        subrequest_headers.pop('Content-Length', None)
         subrequest = Request.blank(path=request.path,
                                    environ=request.environ,
                                    base_url=request.application_url,
-                                   headers=request.headers,
+                                   headers=subrequest_headers,
                                    POST=body,
                                    charset=request.charset)
         subresponse = request.invoke_subrequest(subrequest, use_tweens=True)
