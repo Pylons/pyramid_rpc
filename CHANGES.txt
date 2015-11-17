@@ -1,3 +1,13 @@
+unreleased
+==========
+
+- JSON-RPC
+
+  + Fix a bug in batched requests where the Content-Length header was being
+    copied to the subrequests, causing broken expectations as we were
+    re-serializing the body with a larger length than the original request.
+    See https://github.com/Pylons/pyramid_rpc/pull/41
+
 0.7.1 (2015-09-14)
 ==================
 
