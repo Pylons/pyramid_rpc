@@ -1,3 +1,11 @@
+unreleased
+==========
+
+- AMF
+
+  + Restore compatibility with later releases of PyAMF.
+    See https://github.com/Pylons/pyramid_rpc/pull/43
+
 0.7.2 (2015-11-17)
 ==================
 
