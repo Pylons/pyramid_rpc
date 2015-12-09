@@ -16,6 +16,9 @@ class DummyLogging(object):
     def debug(self, *args):
         pass
 
+    def error(self, *args):
+        pass
+
 class TestAmfViewGateway(unittest.TestCase):
     def _makeOne(self, **kwargs):
         from pyramid_rpc.amfgateway import PyramidGateway
@@ -34,7 +37,7 @@ class TestAmfViewGateway(unittest.TestCase):
         request.body = body
         request.method = request_method
         return gw_instance(request)
-    
+
     def test_request_method(self):
         gw = self._makeOne()
         response = self.doRequest(None, gw, 'GET')
@@ -45,16 +48,16 @@ class TestAmfViewGateway(unittest.TestCase):
         body = util.BufferedByteStream()
         body.write('Bad request')
         body.seek(0, 0)
-        
+
         response = self.doRequest(body, gw)
         self.assertEqual(response.status_int, 400)
 
     def test_unknown_request(self):
         gw = self._makeOne()
         body = self._makeRequestBody('test.test', [], raw=True)
-        
+
         response = self.doRequest(body, gw)
-        
+
         envelope = remoting.decode(response.body)
         message = envelope['/1']
 
@@ -79,7 +82,7 @@ class TestAmfViewGateway(unittest.TestCase):
 
     def _restoreEncode(self):
         remoting.encode = self.old_method
-    
+
     def _restoreDecode(self):
         remoting.decode = self.old_method
 
@@ -109,13 +112,13 @@ class TestAmfViewGateway(unittest.TestCase):
                 self.assertRaises(x, self.doRequest, request, gw)
         finally:
             self._restoreDecode()
-    
+
     def test_expected_exception_response(self):
         gw = self._makeOne()
         request = self._makeRequestBody('echo', 'hello')
 
         gw.getResponse = lambda *args, **kwargs: self._raiseException(KeyboardInterrupt, *args, **kwargs)
-        self.assertRaises(KeyboardInterrupt, self.doRequest, request, gw)        
+        self.assertRaises(KeyboardInterrupt, self.doRequest, request, gw)
 
     def test_expected_exception_encode(self):
         self.old_method = remoting.encode
@@ -130,13 +133,13 @@ class TestAmfViewGateway(unittest.TestCase):
             assert 'Traceback' in response.detail
         finally:
             self._restoreEncode()
-        
+
     def test_expose_request(self):
         gw = self._makeOne()
         gw.expose_request = True
-        
+
         executed = []
-        
+
         def echo(http_request, data):
             assert hasattr(http_request, 'amf_request')
             request = http_request.amf_request
