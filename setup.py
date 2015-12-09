@@ -77,7 +77,7 @@ setup(name='pyramid_rpc',
       extras_require={
           'testing': testing_extras,
           'docs': docs_require,
-          'amf': ['pyamf<=0.6.99'],
+          'amf': ['pyamf'],
       },
       test_suite="pyramid_rpc.tests",
       )
