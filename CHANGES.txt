@@ -1,6 +1,10 @@
 unreleased
 ==========
 
+- Drop Python 3.2 support.
+
+- Add Python 3.5 support.
+
 - AMF
 
   + Restore compatibility with later releases of PyAMF.
