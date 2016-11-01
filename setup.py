@@ -47,7 +47,7 @@ docs_require = [
 ]
 
 setup(name='pyramid_rpc',
-      version='0.7.2',
+      version='0.8',
       description='RPC support for the Pyramid web framework',
       long_description=README,
       classifiers=[
@@ -61,7 +61,7 @@ setup(name='pyramid_rpc',
           "Programming Language :: Python :: 3.5",
           "Framework :: Pyramid",
       ],
-      keywords='web wsgi pyramid pylons xml-rpc json-rpc',
+      keywords='web wsgi pyramid pylons xml-rpc json-rpc amf',
       author="Ben Bangert",
       author_email="ben@groovie.org",
       maintainer='Michael Merickel',
