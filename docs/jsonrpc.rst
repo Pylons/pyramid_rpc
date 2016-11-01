@@ -24,9 +24,10 @@ JSON-RPC
         return config.make_wsgi_app()
 
     if __name__ == '__main__':
-        from paste.httpserver import serve
+        from wsgiref.simple_server import make_server
         app = main({})
-        serve(app, 'localhost', 8080)
+        server = make_server('', 8080, app)
+        server.serve_forever()
 
 Setup
 =====

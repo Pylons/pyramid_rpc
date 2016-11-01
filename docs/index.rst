@@ -22,13 +22,14 @@ Community section first <http://docs.pylonsproject.org/#contributing>`_.
 Installation
 ============
 
-:mod:`pyramid_rpc` is a package that ships outside the main :mod:`pyramid`
-distribution. To install the package, use ``easy_install``::
+Install using ``pip``, where ``$VENV`` is the path to a virtual environment.
 
-  easy_install pyramid_rpc
+.. code-block:: bash
+
+  $ $VENV/bin/pip install pyramid_rpc
 
 Or obtain the packge via https://github.com/Pylons/pyramid_rpc
-and use ``python setup.py install``.
+and use ``$VENV/bin/pip install -e .``.
 
 RPC Documentation
 =================

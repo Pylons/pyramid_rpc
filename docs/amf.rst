@@ -39,13 +39,14 @@ Then expose the gateway as if it was a standard Pyramid view::
     # yourproject/run.py
     
     from pyramid.config import Configurator
-    from paste.httpserver import serve
+    from wsgiref.simple_server import make_server
     
     if __name__ == '__main__':
         config = Configurator()
         config.add_view('amfgateway.echoGateway')
         app = config.make_wsgi_app()
-        serve(app, host='0.0.0.0')
+        server = make_server('', 8080, app)
+        server.serve_forever()
 
 The request passed into the service function is the standard Pyramid request
 object. It can be disabled by passing ``expose_request=False`` into the
